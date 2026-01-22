@@ -144,14 +144,14 @@ Most document tools require uploading sensitive files to unknown servers. DocuHu
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/docuhub.git
+git clone https://github.com/R3ACTR/DocuHub.git
 cd docuhub
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm run dev
 ```
 
 Visit `http://localhost:3000` to see DocuHub in action!
@@ -159,31 +159,11 @@ Visit `http://localhost:3000` to see DocuHub in action!
 ### Build for Production
 ```bash
 # Create optimized production build
-npm run build
+pnpm run build
 
 # Preview production build
-npm run preview
+pnpm run preview
 ```
-
-### Deploy as PWA
-```bash
-# Build and generate service worker
-npm run build:pwa
-
-# The dist/ folder contains your deployable PWA
-```
-
----
-
-
-### Why Single Repository?
-
-**Easier Navigation** – All code in one place  
-**Simplified Contributions** – No confusion about where to start  
-**Better Code Sharing** – Shared utilities across modules  
-**Atomic Changes** – Cross-module updates in single PRs  
-**Clear Project Scope** – Judges and contributors see the full picture  
-
 ---
 
 ## 🏗️ Architecture
