@@ -97,7 +97,7 @@ const blob = new Blob([new Uint8Array(mergedBytes)], {
         multiple
         onChange={(e) => {
           if (!e.target.files) return;
-          setFiles(Array.from(e.target.files));
+          setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
         }}
       />
 
