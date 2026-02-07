@@ -1,22 +1,32 @@
+"use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Shield, WifiOff, ServerOff } from "lucide-react";
 
 export function Header() {
+    const pathname = usePathname();
+
+  const isHomeOrDashboard =
+    pathname === "/" || pathname === "/dashboard";
+
   return (
     <header className="sticky top-0 z-50 w-full bg-[#eef6f5] shadow-sm">
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between py-6">
         {/* Logo Area */}
-        <div className="flex flex-col">
-          <Link href="/" className="group">
-            <span className="text-4xl font-bold text-[#1e1e2e] tracking-tight group-hover:opacity-80 transition-opacity">
-              DocuHub
-            </span>
-          </Link>
-          <span className="text-sm text-muted-foreground font-medium tracking-wide">
-            Privacy-first, offline document processing
-          </span>
-        </div>
+       {isHomeOrDashboard && (
+  <div className="flex flex-col">
+    <Link href="/" className="group">
+      <span className="text-4xl font-bold text-[#1e1e2e] tracking-tight group-hover:opacity-80 transition-opacity">
+        DocuHub
+      </span>
+    </Link>
+    <span className="text-sm text-muted-foreground font-medium tracking-wide">
+      Privacy-first, offline document processing
+    </span>
+  </div>
+)}
+
       </div>
 
       {/* Banner Strip - Now part of the Header */}
