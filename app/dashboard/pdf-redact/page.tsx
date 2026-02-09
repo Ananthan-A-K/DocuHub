@@ -35,6 +35,9 @@ export default function PdfRedactPage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+const [pdfDoc, setPdfDoc] = useState<any>(null);
+const [pageNumber, setPageNumber] = useState(1);
+const [totalPages, setTotalPages] = useState(0);
 
   // Load PDF
   const loadPDF = async (selectedFile: File) => {
@@ -44,10 +47,15 @@ export default function PdfRedactPage() {
     const arrayBuffer = await selectedFile.arrayBuffer();
 
     const pdf = await pdfjsLib.getDocument({
-      data: arrayBuffer,
-    }).promise;
+  data: arrayBuffer,
+}).promise;
 
-    await renderPage(pdf, 1);
+setPdfDoc(pdf);
+setTotalPages(pdf.numPages);
+setPageNumber(1);
+
+await renderPage(pdf, 1);
+
   };
 
   // File input change
@@ -99,6 +107,23 @@ export default function PdfRedactPage() {
       viewport,
     }).promise;
   };
+
+  const goToNextPage = async () => {
+  if (!pdfDoc || pageNumber >= totalPages) return;
+
+  const nextPage = pageNumber + 1;
+  setPageNumber(nextPage);
+  await renderPage(pdfDoc, nextPage);
+};
+
+const goToPrevPage = async () => {
+  if (!pdfDoc || pageNumber <= 1) return;
+
+  const prevPage = pageNumber - 1;
+  setPageNumber(prevPage);
+  await renderPage(pdfDoc, prevPage);
+};
+
 
   // Drawing logic
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -254,6 +279,27 @@ export default function PdfRedactPage() {
           {file.name}
         </div>
       )}
+<div className="flex justify-between items-center mt-4">
+  <button
+    onClick={goToPrevPage}
+    disabled={pageNumber <= 1}
+    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+  >
+    Previous
+  </button>
+
+  <span>
+    Page {pageNumber} of {totalPages}
+  </span>
+
+  <button
+    onClick={goToNextPage}
+    disabled={pageNumber >= totalPages}
+    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+  >
+    Next
+  </button>
+</div>
 
       {/* Canvas */}
       {file && (
