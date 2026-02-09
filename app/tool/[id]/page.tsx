@@ -200,7 +200,7 @@ export default function ToolUploadPage() {
     }
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -216,10 +216,8 @@ export default function ToolUploadPage() {
     setFileError(null);
     setSelectedFile(file);
     setHasUnsavedWork(true);
-
-    setTimeout(() => {
-      router.push(`/tool/${toolId}/processing`);
-    }, 500);
+    
+    // Don't auto-navigate - let user click "Process File" button
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
