@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-
+import { useState, useRef } from "react";
+import * as pdfjsLib from "pdfjs-dist";
 import { PDFDocument } from "pdf-lib";
 import {
   FileUp,
@@ -11,7 +11,13 @@ import {
   FileText,
 } from "lucide-react";
 
-
+// Worker setup
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
+}
 
 interface Rect {
   x: number;
@@ -29,51 +35,26 @@ export default function PdfRedactPage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const pdfjsRef = useRef<typeof import("pdfjs-dist") | null>(null);
-  // Worker setup
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadPdfJs = async () => {
-      if (typeof window === "undefined") return;
-      const pdfjsLib = await import("pdfjs-dist");
-      if (cancelled) return;
-
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/build/pdf.worker.min.mjs",
-        import.meta.url
-      ).toString();
-
-      // store pdfjsLib in state/ref if you need it later
-    };
-
-    loadPdfJs();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+const [pdfDoc, setPdfDoc] = useState<any>(null);
+const [pageNumber, setPageNumber] = useState(1);
+const [totalPages, setTotalPages] = useState(0);
 
   // Load PDF
   const loadPDF = async (selectedFile: File) => {
-    if (!pdfjsRef.current) return; // pdfjs not ready yet
-
     setFile(selectedFile);
     setRectangles([]);
 
     const arrayBuffer = await selectedFile.arrayBuffer();
 
-    const pdf = await pdfjsRef.current.getDocument({
-      data: arrayBuffer,
-    }).promise;
+    const pdf = await pdfjsLib.getDocument({
+  data: arrayBuffer,
+}).promise;
 
-    setPdfDoc(pdf);
-    setTotalPages(pdf.numPages);
-    setPageNumber(1);
+setPdfDoc(pdf);
+setTotalPages(pdf.numPages);
+setPageNumber(1);
 
-    await renderPage(pdf, 1);
+await renderPage(pdf, 1);
 
   };
 
@@ -128,20 +109,20 @@ export default function PdfRedactPage() {
   };
 
   const goToNextPage = async () => {
-    if (!pdfDoc || pageNumber >= totalPages) return;
+  if (!pdfDoc || pageNumber >= totalPages) return;
 
-    const nextPage = pageNumber + 1;
-    setPageNumber(nextPage);
-    await renderPage(pdfDoc, nextPage);
-  };
+  const nextPage = pageNumber + 1;
+  setPageNumber(nextPage);
+  await renderPage(pdfDoc, nextPage);
+};
 
-  const goToPrevPage = async () => {
-    if (!pdfDoc || pageNumber <= 1) return;
+const goToPrevPage = async () => {
+  if (!pdfDoc || pageNumber <= 1) return;
 
-    const prevPage = pageNumber - 1;
-    setPageNumber(prevPage);
-    await renderPage(pdfDoc, prevPage);
-  };
+  const prevPage = pageNumber - 1;
+  setPageNumber(prevPage);
+  await renderPage(pdfDoc, prevPage);
+};
 
 
   // Drawing logic
@@ -265,10 +246,11 @@ export default function PdfRedactPage() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-10 text-center transition ${isDraggingOver
+        className={`relative border-2 border-dashed rounded-3xl p-10 text-center transition ${
+          isDraggingOver
             ? "border-indigo-500 bg-indigo-50"
             : "border-gray-200 bg-white hover:border-gray-300"
-          }`}
+        }`}
       >
         <input
           type="file"
@@ -297,27 +279,27 @@ export default function PdfRedactPage() {
           {file.name}
         </div>
       )}
-      <div className="flex justify-between items-center mt-4">
-        <button
-          onClick={goToPrevPage}
-          disabled={pageNumber <= 1}
-          className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Previous
-        </button>
+<div className="flex justify-between items-center mt-4">
+  <button
+    onClick={goToPrevPage}
+    disabled={pageNumber <= 1}
+    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+  >
+    Previous
+  </button>
 
-        <span>
-          Page {pageNumber} of {totalPages}
-        </span>
+  <span>
+    Page {pageNumber} of {totalPages}
+  </span>
 
-        <button
-          onClick={goToNextPage}
-          disabled={pageNumber >= totalPages}
-          className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
+  <button
+    onClick={goToNextPage}
+    disabled={pageNumber >= totalPages}
+    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+  >
+    Next
+  </button>
+</div>
 
       {/* Canvas */}
       {file && (
