@@ -111,6 +111,7 @@ await renderPage(pdf, 1);
     await page.render({
       canvasContext: context,
       viewport,
+      canvas,
     }).promise;
   };
 
@@ -216,58 +217,96 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
 
   // Redact
   const handleRedactPDF = async () => {
-    if (!canvasRef.current) return;
+  if (!file) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
+  try {
+    const arrayBuffer = await file.arrayBuffer();
 
-      if (!ctx) return;
+    // Load original PDF
+    const originalPdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+    }).promise;
 
-      rectangles.forEach((rect) => {
-        ctx.fillStyle = "black";
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    // Create new PDF
+    const newPdf = await PDFDocument.create();
+
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+
+    if (!tempCtx) return;
+
+    // Process ALL pages
+    for (let i = 1; i <= originalPdf.numPages; i++) {
+      const page = await originalPdf.getPage(i);
+
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+
+      // Render page
+      await page.render({
+        canvasContext: tempCtx,
+        viewport,
+        canvas: tempCanvas,
+      }).promise;
+
+      // Apply redactions for this page
+      const rects = rectanglesByPage[i] || [];
+
+      rects.forEach((rect) => {
+        tempCtx.fillStyle = "black";
+        tempCtx.fillRect(
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height
+        );
       });
 
-      const imageDataUrl = canvas.toDataURL("image/png");
+      // Convert page to image
+      const imageDataUrl = tempCanvas.toDataURL("image/png");
 
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([
-        canvas.width,
-        canvas.height,
+      const pngImage = await newPdf.embedPng(imageDataUrl);
+
+      const newPage = newPdf.addPage([
+        viewport.width,
+        viewport.height,
       ]);
 
-      const pngImage = await pdfDoc.embedPng(imageDataUrl);
-
-      page.drawImage(pngImage, {
+      newPage.drawImage(pngImage, {
         x: 0,
         y: 0,
-        width: canvas.width,
-        height: canvas.height,
+        width: viewport.width,
+        height: viewport.height,
       });
-
-      const pdfBytes = await pdfDoc.save();
-
-      const blob = new Blob([new Uint8Array(pdfBytes)], {
-        type: "application/pdf",
-      });
-
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "redacted-secure.pdf";
-      a.click();
-
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
     }
 
-    setLoading(false);
-  };
+    // Save PDF
+    const pdfBytes = await newPdf.save();
+
+    const blob = new Blob([new Uint8Array(pdfBytes)], {
+      type: "application/pdf",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "redacted-secure.pdf";
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error(err);
+  }
+
+  setLoading(false);
+};
+
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
