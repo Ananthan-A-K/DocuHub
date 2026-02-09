@@ -14,6 +14,7 @@ export default function ToolUploadPage() {
     const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Warn on refresh / tab close
@@ -72,6 +73,37 @@ export default function ToolUploadPage() {
                 `Unsupported file type. Please upload ${allowedTypes.join(", ")} file(s).`
             );
             e.target.value = "";
+            return;
+        }
+
+        setFileError(null);
+        setSelectedFile(file);
+        setHasUnsavedWork(true);
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDraggingOver(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDraggingOver(false);
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDraggingOver(false);
+
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+
+        const allowedTypes = getSupportedTypes();
+        const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
+
+        if (allowedTypes.length && !allowedTypes.includes(fileExtension)) {
+            setFileError(
+                `Unsupported file type. Please upload ${allowedTypes.join(", ")} file(s).`
+            );
             return;
         }
 
@@ -146,12 +178,19 @@ export default function ToolUploadPage() {
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="relative w-full rounded-2xl border-2 border-dashed border-[#ccdcdb] bg-[#eef6f5]"
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={`relative w-full rounded-2xl border-2 border-dashed transition-colors ${
+                            isDraggingOver
+                                ? "border-[#1e1e2e] bg-[#d9ebea]"
+                                : "border-[#ccdcdb] bg-[#eef6f5] hover:bg-[#e4eff0]"
+                        }`}
                     >
                         <label className="flex flex-col items-center justify-center h-[400px] cursor-pointer">
                             <Upload className="w-16 h-16 mb-4" />
                             <p className="text-xl font-medium">
-                                Drag & drop your file here
+                                {isDraggingOver ? "Drop your file here" : "Drag & drop your file here"}
                             </p>
                             <p className="text-muted-foreground">
                                 or click to browse
