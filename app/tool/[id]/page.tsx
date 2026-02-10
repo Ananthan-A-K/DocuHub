@@ -7,7 +7,9 @@ import {
   Scissors,
   FileUp,
   Loader2,
+  FileText   // ← ADD THIS
 } from "lucide-react";
+
 
 import { ToolCard } from "@/components/ToolCard";
 import { useRouter, useParams } from "next/navigation";
@@ -196,6 +198,13 @@ export default function ToolUploadPage() {
               description="Split PDF pages"
               href="/dashboard/pdf-split"
             />
+            <ToolCard
+              icon={FileText}
+              title="Redact PDF"
+              description="Securely hide sensitive information in PDF"
+              href="/tool/pdf-redact"
+            />
+
             <ToolCard
               icon={FileUp}
               title="Document to PDF"
