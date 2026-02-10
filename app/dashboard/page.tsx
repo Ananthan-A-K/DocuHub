@@ -1,5 +1,6 @@
 import { FileText, ArrowLeftRight, ScanText, LayoutGrid } from "lucide-react";
 import { ToolCard } from "@/components/ToolCard";
+import RecentFiles from "@/components/RecentFiles"; // ✅ ADDED
 
 export default function Dashboard() {
   return (
@@ -14,7 +15,6 @@ export default function Dashboard() {
         {/* Tools Grid matching Image 2 Style */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 max-w-5xl">
          
-
           <ToolCard
             icon={FileText}
             title="PDF Tools"
@@ -44,6 +44,9 @@ export default function Dashboard() {
             disabled={false}
           />
         </div>
+
+        {/* ✅ RECENT FILES SECTION ADDED */}
+        <RecentFiles />
 
       </main>
       {/* Footer is now in layout.tsx */}

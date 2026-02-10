@@ -4,6 +4,23 @@ import { useState, useRef } from "react";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import * as mammoth from "mammoth";
 
+// ✅ ADDED — Recent Files Save Function
+function saveRecentFile(fileName: string, tool: string) {
+  const existing = localStorage.getItem("recentFiles");
+  let files = existing ? JSON.parse(existing) : [];
+
+  const newEntry = {
+    fileName,
+    tool,
+    time: new Date().toLocaleString(),
+  };
+
+  files.unshift(newEntry);
+  files = files.slice(0, 5);
+
+  localStorage.setItem("recentFiles", JSON.stringify(files));
+}
+
 export default function DocumentToPdfPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,6 +153,10 @@ export default function DocumentToPdfPage() {
       a.click();
 
       URL.revokeObjectURL(url);
+
+      // ✅ ADDED — Save to Recent Files AFTER SUCCESS
+      saveRecentFile(file.name, "Document to PDF");
+
     } catch (err) {
       console.error(err);
       setError("Conversion failed");
