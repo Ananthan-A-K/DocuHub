@@ -375,82 +375,100 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
           {file.name}
         </div>
       )}
-      {/* Tool selector */}
+{/* Tool selector */}
 {file && (
-  <div className="flex gap-3 mt-4">
+  <div className="mt-6 flex flex-wrap gap-3 bg-gray-50 p-3 rounded-2xl border">
+
     <button
       onClick={() => setTool("redact")}
-      className={`px-4 py-2 rounded ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
         tool === "redact"
-          ? "bg-indigo-600 text-white"
-          : "bg-gray-200"
+          ? "bg-indigo-600 text-white shadow"
+          : "bg-white text-gray-700 hover:bg-gray-100 border"
       }`}
     >
-      Redact Tool
+      <Shield className="w-4 h-4" />
+      Redact
     </button>
 
     <button
       onClick={() => setTool("erase")}
-      className={`px-4 py-2 rounded ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
         tool === "erase"
-          ? "bg-red-600 text-white"
-          : "bg-gray-200"
+          ? "bg-red-600 text-white shadow"
+          : "bg-white text-gray-700 hover:bg-gray-100 border"
       }`}
     >
-      Eraser Tool
+      Eraser
     </button>
+
   </div>
 )}
 
-<div className="flex justify-between items-center mt-4">
-  <button
-    onClick={goToPrevPage}
-    disabled={pageNumber <= 1}
-    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-  >
-    Previous
-  </button>
 
-  <span>
-    Page {pageNumber} of {totalPages}
-  </span>
+{/* Page Navigation */}
+{file && (
+  <div className="mt-6 flex items-center justify-between bg-white border rounded-2xl px-4 py-3 shadow-sm">
 
-  <button
-    onClick={goToNextPage}
-    disabled={pageNumber >= totalPages}
-    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-  >
-    Next
-  </button>
-</div>
+    <button
+      onClick={goToPrevPage}
+      disabled={pageNumber <= 1}
+      className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+    >
+      ← Previous
+    </button>
 
-      {/* Canvas */}
-      {file && (
-        <div className="mt-6 border rounded-xl shadow overflow-auto relative">
-          <canvas
-            ref={canvasRef}
-            className="max-w-full"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-          />
+    <div className="text-sm font-medium text-gray-700">
+      Page <span className="text-indigo-600">{pageNumber}</span> of {totalPages}
+    </div>
 
-          {rectangles.map((rect, index) => (
-            <div
-              key={index}
-              style={{
-                position: "absolute",
-                pointerEvents: "none",
-                left: rect.x,
-                top: rect.y,
-                width: rect.width,
-                height: rect.height,
-                backgroundColor: "black",
-              }}
-            />
-          ))}
-        </div>
-      )}
+    <button
+      onClick={goToNextPage}
+      disabled={pageNumber >= totalPages}
+      className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+    >
+      Next →
+    </button>
+
+  </div>
+)}
+
+
+{/* Canvas */}
+{file && (
+  <div className="mt-6 bg-white border rounded-2xl shadow-sm p-4">
+
+    <div className="relative overflow-auto rounded-xl border bg-gray-50 flex justify-center">
+
+      <canvas
+        ref={canvasRef}
+        className="max-w-full rounded-lg shadow"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+      />
+
+      {rectangles.map((rect, index) => (
+        <div
+          key={index}
+          style={{
+            position: "absolute",
+            pointerEvents: "none",
+            left: rect.x,
+            top: rect.y,
+            width: rect.width,
+            height: rect.height,
+            backgroundColor: "black",
+            borderRadius: "4px",
+          }}
+        />
+      ))}
+
+    </div>
+
+  </div>
+)}
+
 
       {/* Button */}
       {file && (
