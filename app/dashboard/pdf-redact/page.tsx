@@ -227,16 +227,17 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
   };
 
   // Redact
-  const handleRedactPDF = async () => {
-  if (!file) return;
+// Redact
+const handleRedactPDF = async () => {
+  if (!file || !pdfjsRef.current) return;
 
   setLoading(true);
 
   try {
     const arrayBuffer = await file.arrayBuffer();
 
-    // Load original PDF
-    const originalPdf = await pdfjsLib.getDocument({
+    // Load original PDF using pdfjsRef (NOT pdfjsLib)
+    const originalPdf = await pdfjsRef.current.getDocument({
       data: arrayBuffer,
     }).promise;
 
@@ -246,7 +247,10 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const tempCanvas = document.createElement("canvas");
     const tempCtx = tempCanvas.getContext("2d");
 
-    if (!tempCtx) return;
+    if (!tempCtx) {
+      setLoading(false);
+      return;
+    }
 
     // Process ALL pages
     for (let i = 1; i <= originalPdf.numPages; i++) {
@@ -257,6 +261,9 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
       tempCanvas.width = viewport.width;
       tempCanvas.height = viewport.height;
 
+      // Clear previous render
+      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
       // Render page
       await page.render({
         canvasContext: tempCtx,
@@ -264,20 +271,15 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
         canvas: tempCanvas,
       }).promise;
 
-      // Apply redactions for this page
+      // Apply redactions
       const rects = rectanglesByPage[i] || [];
 
       rects.forEach((rect) => {
         tempCtx.fillStyle = "black";
-        tempCtx.fillRect(
-          rect.x,
-          rect.y,
-          rect.width,
-          rect.height
-        );
+        tempCtx.fillRect(rect.x, rect.y, rect.width, rect.height);
       });
 
-      // Convert page to image
+      // Convert to image
       const imageDataUrl = tempCanvas.toDataURL("image/png");
 
       const pngImage = await newPdf.embedPng(imageDataUrl);
@@ -312,11 +314,12 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     URL.revokeObjectURL(url);
 
   } catch (err) {
-    console.error(err);
+    console.error("Redaction failed:", err);
   }
 
   setLoading(false);
 };
+
 
 
   return (
