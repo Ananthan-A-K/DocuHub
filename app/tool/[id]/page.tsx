@@ -211,6 +211,12 @@ export default function ToolUploadPage() {
               description="Securely hide sensitive information"
               href="/tool/pdf-redact"
             />
+            <ToolCard
+              icon={FileText}
+              title="Protect PDF"
+              description="Add password protection to PDF"
+              href="/tool/pdf-protect"
+            />
 
             <ToolCard
               icon={FileUp}
