@@ -10,17 +10,40 @@ export default function Dashboard() {
   const [lastTool, setLastTool] = useState<string | null>(null);
   const [hideResume, setHideResume] = useState(false);
 
+  // ✅ NEW — recent tools state (safe add)
+  const [recentTools, setRecentTools] = useState<string[]>([]);
+
+  // ✅ NEW — usage count state
+  const [toolCounts, setToolCounts] = useState<Record<string, number>>({});
+
   const pathname = usePathname(); // ✅ ADDED
 
   useEffect(() => {
     const storedTool = localStorage.getItem("lastUsedTool");
     const dismissedFor = localStorage.getItem("hideResumeFor");
 
+    // ✅ Load recent tools
+    const storedRecent = JSON.parse(
+      localStorage.getItem("recentTools") || "[]"
+    );
+    setRecentTools(storedRecent);
+
+    // ✅ Load usage counts
+    const storedCounts = JSON.parse(
+      localStorage.getItem("toolUsageCounts") || "{}"
+    );
+    setToolCounts(storedCounts);
+
     if (storedTool) {
       setLastTool(storedTool);
       setHideResume(dismissedFor === storedTool);
     }
   }, []);
+
+  // ✅ Sort most used tools
+  const mostUsedTools = Object.entries(toolCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -55,6 +78,32 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* ✅ NEW — MOST USED TOOLS SECTION */}
+        {mostUsedTools.length > 0 && (
+          <div className="mb-10 max-w-5xl">
+            <h2 className="text-xl font-semibold text-[#1e1e2e] mb-4">
+              Most Used Tools
+            </h2>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {mostUsedTools.map(([tool, count]) => (
+                <Link
+                  key={tool}
+                  href={`/tool/${tool}`}
+                  className="rounded-lg border p-4 bg-white hover:bg-[#f6fbfa] transition flex justify-between items-center"
+                >
+                  <span className="font-medium">
+                    {tool.replace("-", " ").toUpperCase()}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {count} uses
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-12">
           <h1 className="text-3xl font-semibold text-[#1e1e2e] tracking-tight mb-2">
             Choose a tool
@@ -73,7 +122,7 @@ export default function Dashboard() {
             description="Work with PDF files"
             href="/tool/pdf-tools"
             disabled={false}
-            active={pathname === "/tool/pdf-tools"} // ✅ ADDED
+            active={pathname === "/tool/pdf-tools"}
           />
 
           <ToolCard
@@ -82,7 +131,7 @@ export default function Dashboard() {
             description="Convert document formats"
             href="/tool/file-conversion"
             disabled={false}
-            active={pathname === "/tool/file-conversion"} // ✅ ADDED
+            active={pathname === "/tool/file-conversion"}
           />
 
           <ToolCard
@@ -91,7 +140,7 @@ export default function Dashboard() {
             description="Extract text from images"
             href="/tool/ocr"
             disabled={false}
-            active={pathname === "/tool/ocr"} // ✅ ADDED
+            active={pathname === "/tool/ocr"}
           />
 
           <ToolCard
@@ -100,7 +149,7 @@ export default function Dashboard() {
             description="Clean and process files"
             href="/tool/data-tools"
             disabled={false}
-            active={pathname === "/tool/data-tools"} // ✅ ADDED
+            active={pathname === "/tool/data-tools"}
           />
 
         </div>

@@ -37,15 +37,16 @@ export default function ToolUploadPage() {
   const [pendingDuplicate, setPendingDuplicate] = useState<File | null>(null);
 
   /* --------------------------------------------
-     ✅ Remember last-used tool + recent tools
+     ✅ Remember last-used tool + recent tools + usage count (FIXED)
   --------------------------------------------- */
   useEffect(() => {
     if (toolId && toolId !== "pdf-tools") {
-      // Last tool (existing behavior)
+
+      // Last used tool
       localStorage.setItem("lastUsedTool", toolId);
       localStorage.removeItem("hideResume");
 
-      // ✅ Recent tools list (NEW)
+      // Recent tools list
       const existing = JSON.parse(
         localStorage.getItem("recentTools") || "[]"
       );
@@ -56,6 +57,24 @@ export default function ToolUploadPage() {
       ].slice(0, 5);
 
       localStorage.setItem("recentTools", JSON.stringify(updated));
+
+      // ✅ FIX — Prevent double increment (React Strict Mode safe)
+      const sessionKey = `counted_${toolId}`;
+
+      if (!sessionStorage.getItem(sessionKey)) {
+        const usageCounts = JSON.parse(
+          localStorage.getItem("toolUsageCounts") || "{}"
+        );
+
+        usageCounts[toolId] = (usageCounts[toolId] || 0) + 1;
+
+        localStorage.setItem(
+          "toolUsageCounts",
+          JSON.stringify(usageCounts)
+        );
+
+        sessionStorage.setItem(sessionKey, "true");
+      }
     }
   }, [toolId]);
 
@@ -88,9 +107,7 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* --------------------------------------------
-     FILE INPUT
-  --------------------------------------------- */
+  /* FILE INPUT */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -128,9 +145,7 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* --------------------------------------------
-     DRAG DROP
-  --------------------------------------------- */
+  /* DRAG DROP */
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOver(false);
@@ -159,9 +174,7 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* --------------------------------------------
-     PROCESS FILE
-  --------------------------------------------- */
+  /* PROCESS FILE */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -187,9 +200,7 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* --------------------------------------------
-     PDF TOOLS PAGE
-  --------------------------------------------- */
+  /* PDF TOOLS PAGE */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -211,9 +222,7 @@ export default function ToolUploadPage() {
     );
   }
 
-  /* --------------------------------------------
-     UPLOAD PAGE
-  --------------------------------------------- */
+  /* UPLOAD PAGE */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
