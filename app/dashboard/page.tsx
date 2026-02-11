@@ -42,7 +42,9 @@ export default function Dashboard() {
 
             <button
               onClick={() => {
-                localStorage.setItem("hideResume", "true");
+                if (lastTool) {
+                  localStorage.setItem("hideResumeFor", lastTool);
+                }
                 setHideResume(true);
               }}
               className="text-sm text-muted-foreground hover:text-[#1e1e2e]"
