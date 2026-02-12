@@ -25,7 +25,7 @@ import {
   clearToolState,
 } from "@/lib/toolStateStorage";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function ToolUploadPage() {
   const router = useRouter();
@@ -43,6 +43,7 @@ export default function ToolUploadPage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Persisted metadata only (safe to store)
   const [persistedFileMeta, setPersistedFileMeta] = useState<{
     name: string;
     size: number;
@@ -54,13 +55,18 @@ export default function ToolUploadPage() {
   >("medium");
 
   /* Restore persisted state */
+  /* --------------------------------------------
+     Restore persisted state
+  --------------------------------------------- */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
-  /* Persist state */
+  /* --------------------------------------------
+     Persist state
+  --------------------------------------------- */
   useEffect(() => {
     if (!toolId || !selectedFile) return;
 
@@ -73,7 +79,9 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFile]);
 
-  /* Warn before refresh */
+  /* --------------------------------------------
+     Warn before refresh
+  --------------------------------------------- */
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -101,7 +109,9 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* FILE INPUT */
+  /* --------------------------------------------
+     FILE INPUT
+  --------------------------------------------- */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,7 +136,9 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* REMOVE FILE */
+  /* --------------------------------------------
+     ✅ CONFIRMED CLEAR / RESET TOOL
+  --------------------------------------------- */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
       "This will remove your uploaded file and reset the tool. Continue?"
@@ -142,7 +154,9 @@ export default function ToolUploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /* PROCESS FILE */
+  /* --------------------------------------------
+     PROCESS FILE
+  --------------------------------------------- */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -174,7 +188,9 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* PDF TOOLS PAGE */
+  /* --------------------------------------------
+     PDF TOOLS PAGE
+  --------------------------------------------- */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -183,18 +199,20 @@ export default function ToolUploadPage() {
           <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
 
           <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
-            <ToolCard icon={Combine} title="Merge PDF" description="Combine multiple PDFs" href="/dashboard/pdf-merge" />
-            <ToolCard icon={Minimize2} title="Compress PDF" description="Reduce PDF file size" href="/tool/pdf-compress" />
-            <ToolCard icon={Scissors} title="Split PDF" description="Split PDF pages" href="/dashboard/pdf-split" />
-            <ToolCard icon={FileText} title="Protect PDF" description="Add password protection" href="/tool/pdf-protect" />
-            <ToolCard icon={FileUp} title="Document to PDF" description="Convert documents to PDF" href="/dashboard/document-to-pdf" />
+            <ToolCard icon={Combine} title="Merge PDF" description="Combine PDFs" href="/dashboard/pdf-merge" />
+            <ToolCard icon={Minimize2} title="Compress PDF" description="Reduce file size" href="/tool/pdf-compress" />
+            <ToolCard icon={Scissors} title="Split PDF" description="Split pages" href="/dashboard/pdf-split" />
+            <ToolCard icon={FileText} title="Protect PDF" description="Add password" href="/tool/pdf-protect" />
+            <ToolCard icon={FileUp} title="Document to PDF" description="Convert to PDF" href="/dashboard/document-to-pdf" />
           </div>
         </main>
       </div>
     );
   }
 
-  /* UPLOAD PAGE */
+  /* --------------------------------------------
+     UPLOAD PAGE
+  --------------------------------------------- */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
