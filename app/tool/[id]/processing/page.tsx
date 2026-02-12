@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Tesseract from "tesseract.js";
 import { getStoredFile, clearStoredFile } from "@/lib/fileStore";
+import { PDFDocument } from "pdf-lib";
 
 export default function ProcessingPage() {
   const router = useRouter();
@@ -29,20 +30,88 @@ export default function ProcessingPage() {
 
   // ✅ FIX: handle pdf-redact as well
   if (toolId === "ocr") {
-    runOCR(fileData);
-  }
-  else if (toolId === "pdf-redact") {
-    // For now directly mark as done so editor can load
-    setStatus("done");
-    clearStoredFile();
-  }
-  else {
-    // Other tools not implemented yet
-    setStatus("done");
-    clearStoredFile();
-  }
+  runOCR(fileData);
+}
+else if (toolId === "pdf-compress") {
+  startCompressFlow(fileData);
+}
+else if (toolId === "pdf-redact") {
+  setStatus("done");
+  clearStoredFile();
+}
+else {
+  setStatus("done");
+  clearStoredFile();
+}
 
 }, [toolId]);
+
+const startCompressFlow = async (base64Data: string) => {
+  setStatus("processing");
+  setProgress(20);
+
+  try {
+    const targetSize =
+  localStorage.getItem("targetSize") || "1MB";
+
+let targetBytes = 0;
+let targetDisplay = "";
+
+if (targetSize.includes("KB")) {
+  const kb = Number(targetSize.replace("KB", ""));
+  targetBytes = kb * 1024;
+  targetDisplay = `${kb} KB`;
+} else {
+  const mb = Number(targetSize.replace("MB", ""));
+  targetBytes = mb * 1024 * 1024;
+  targetDisplay = `${mb} MB`;
+}
+
+localStorage.setItem("targetDisplay", targetDisplay);
+
+const res = await fetch("/api/compress", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    base64: base64Data,
+    targetBytes,
+  }),
+});
+
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Compression failed");
+    }
+
+    // Save result to localStorage
+    localStorage.setItem("originalMB", data.original);
+    localStorage.setItem("compressedMB", data.compressed);
+    localStorage.setItem("reduction", data.reduction);
+
+    const blob = new Blob(
+      [Uint8Array.from(atob(data.file), c => c.charCodeAt(0))],
+      { type: "application/pdf" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    localStorage.setItem("compressedPDF", url);
+
+    setProgress(100);
+    setStatus("done");
+    clearStoredFile();
+
+  } catch (err) {
+    console.error("Compression failed:", err);
+    setStatus("error");
+    setErrorMessage("Failed to compress PDF.");
+  }
+};
+
+
 
 
   const runOCR = async (base64Data: string) => {
@@ -150,8 +219,11 @@ export default function ProcessingPage() {
           <div className="text-center mb-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold text-[#1e1e2e] mb-2">
-              Text Extracted Successfully!
+              {toolId === "pdf-compress"
+                ? "PDF Compressed Successfully!"
+                : "Text Extracted Successfully!"}
             </h2>
+
           </div>
 
           {/* Actions */}
@@ -164,24 +236,70 @@ export default function ProcessingPage() {
               {copied ? "Copied!" : "Copy Text"}
             </button>
 
+            {toolId === "pdf-compress" ? (
+            <button
+  onClick={() => {
+  const url = localStorage.getItem("compressedPDF");
+  if (url) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "compressed.pdf";
+    a.click();
+  }
+}}
+
+  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+>
+
+            <Download className="w-4 h-4" />
+              Download PDF
+            </button>
+            ) : (
             <button
               onClick={handleDownloadText}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
-              <Download className="w-4 h-4" />
-              Download .txt
+            <Download className="w-4 h-4" />
+               Download .txt
             </button>
+          )}
+
           </div>
 
-          {/* Extracted text */}
-          <div className="bg-white rounded-xl border p-6 shadow-sm">
-            <h3 className="font-medium mb-3">Extracted Text:</h3>
-            <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
-              <pre className="whitespace-pre-wrap text-sm font-mono">
-                {extractedText || "(No text detected)"}
-              </pre>
-            </div>
-          </div>
+{toolId === "pdf-compress" ? (
+  <div className="bg-white rounded-xl border p-6 shadow-sm">
+
+    <h3 className="font-medium mb-4">Compression Result</h3>
+
+    <div className="space-y-2 text-sm">
+      <p>
+        <strong>Original Size:</strong>{" "}
+        {localStorage.getItem("originalMB")} MB
+      </p>
+
+      <p>
+        <strong>Compressed Size:</strong>{" "}
+        {localStorage.getItem("compressedMB")} MB
+      </p>
+
+      <p>
+        <strong>Reduction:</strong>{" "}
+        {localStorage.getItem("reduction")}% smaller
+      </p>
+    </div>
+
+  </div>
+) : (
+  <div className="bg-white rounded-xl border p-6 shadow-sm">
+    <h3 className="font-medium mb-3">Extracted Text:</h3>
+    <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-auto">
+      <pre className="whitespace-pre-wrap text-sm font-mono">
+        {extractedText || "(No text detected)"}
+      </pre>
+    </div>
+  </div>
+)}
+
 
           {/* Back button */}
           <div className="text-center mt-8">

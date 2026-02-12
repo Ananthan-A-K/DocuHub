@@ -231,7 +231,8 @@ export default function ToolUploadPage() {
           </h1>
           <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
 
-         const handlePr <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
+         <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
+
 <ToolCard
   icon={Combine}
   title="Merge PDF"
@@ -322,8 +323,49 @@ export default function ToolUploadPage() {
         </motion.div>
 
         {selectedFile && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
+
             <p className="font-medium">{selectedFile.name}</p>
+
+           {toolId === "pdf-compress" && (
+  <div className="space-y-3">
+
+    <p className="text-sm font-medium">Target Compression:</p>
+
+    <select
+  className="border rounded px-3 py-2 w-60"
+  defaultValue="1MB"
+  onChange={(e) =>
+    localStorage.setItem("targetSize", e.target.value)
+  }
+>
+  <optgroup label="KB Options">
+    <option value="500KB">Compress to ~500 KB</option>
+    <option value="300KB">Compress to ~300 KB</option>
+    <option value="200KB">Compress to ~200 KB</option>
+    <option value="100KB">Compress to ~100 KB</option>
+  </optgroup>
+
+  <optgroup label="MB Options">
+    <option value="1MB">Compress to ~1 MB</option>
+    <option value="2MB">Compress to ~2 MB</option>
+    <option value="5MB">Compress to ~5 MB</option>
+    <option value="10MB">Compress to ~10 MB</option>
+    <option value="20MB">Compress to ~20 MB</option>
+  </optgroup>
+</select>
+
+    <p className="text-xs text-gray-500">
+      After processing you will see:
+      • Original size  
+      • Compressed size  
+      • Percentage reduction
+    </p>
+
+  </div>
+)}
+
+
             <button
               onClick={handleProcessFile}
               disabled={isProcessing}
@@ -335,6 +377,7 @@ export default function ToolUploadPage() {
                 "Process File"
               )}
             </button>
+
           </div>
         )}
 
@@ -345,3 +388,4 @@ export default function ToolUploadPage() {
     </div>
   );
 }
+
