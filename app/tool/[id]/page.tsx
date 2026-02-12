@@ -6,10 +6,15 @@ import { ToolCard } from "@/components/ToolCard";
 import { FileText, Upload } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useState, useRef } from "react";
+
 
 export default function ToolUploadPage() {
     const router = useRouter();
     const params = useParams();
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+const fileInputRef = useRef<HTMLInputElement | null>(null);
+
     const toolId = params.id;
     const getToolTitle = () => {
         switch (toolId) {
@@ -24,8 +29,17 @@ export default function ToolUploadPage() {
         }
     };
 
+const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setSelectedFile(file);
+};
 
 
+
+const handleReplaceFile = () => {
+  fileInputRef.current?.click();
+};
 
 
     // PDF Tools page
@@ -114,11 +128,13 @@ export default function ToolUploadPage() {
                 </div>
 
                 <div className="w-full max-w-5xl">
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="relative w-full rounded-2xl border-2 border-dashed border-[#ccdcdb] bg-[#eef6f5] hover:bg-[#e4eff0] transition-colors"
-                    >
+                   <motion.div
+  onClick={() => fileInputRef.current?.click()}
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="relative w-full rounded-2xl border-2 border-dashed cursor-pointer ..."
+>
+
                         <label className="flex flex-col items-center justify-center w-full h-[400px] cursor-pointer">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <div className="mb-6 text-[#1e1e2e]">
@@ -138,6 +154,21 @@ export default function ToolUploadPage() {
                             />
                         </label>
                     </motion.div>
+                    {selectedFile && (
+  <div className="mt-6 flex items-center gap-4">
+    <p className="text-sm font-medium">
+      Selected file: {selectedFile.name}
+    </p>
+
+    <button
+      onClick={handleReplaceFile}
+      className="text-sm text-blue-600 hover:underline"
+    >
+      Replace File
+    </button>
+  </div>
+)}
+
 
                     <div className="flex justify-between text-xs text-muted-foreground mt-4 px-1">
                         <span>Supported formats: PDF, JPG, PNG</span>
