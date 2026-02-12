@@ -1,13 +1,16 @@
 "use client";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Image as ImageIcon } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
-import { FileText, Upload } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useState } from "react";
+
 
 export default function ToolUploadPage() {
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
     const router = useRouter();
     const params = useParams();
     const toolId = params.id;
@@ -24,7 +27,24 @@ export default function ToolUploadPage() {
         }
     };
 
+const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setSelectedFile(file);
+};
+const getFileIcon = (file: File) => {
+  const ext = file.name.split(".").pop()?.toLowerCase();
 
+  if (ext === "pdf") {
+    return <FileText className="w-6 h-6 text-red-500" />;
+  }
+
+  if (["jpg", "jpeg", "png"].includes(ext || "")) {
+    return <ImageIcon className="w-6 h-6 text-blue-500" />;
+  }
+
+  return <FileText className="w-6 h-6 text-gray-400" />;
+};
 
 
 
@@ -138,6 +158,14 @@ export default function ToolUploadPage() {
                             />
                         </label>
                     </motion.div>
+{selectedFile && (
+  <div className="mt-6 flex items-center gap-3 rounded-lg border bg-white p-4">
+    {getFileIcon(selectedFile)}
+    <p className="text-sm font-medium text-[#1e1e2e]">
+      {selectedFile.name}
+    </p>
+  </div>
+)}
 
                     <div className="flex justify-between text-xs text-muted-foreground mt-4 px-1">
                         <span>Supported formats: PDF, JPG, PNG</span>
