@@ -18,6 +18,13 @@ export default function RecentFiles() {
     }
   }, []);
 
+  // ✅ ADDED — Delete Function
+  const handleDelete = (indexToDelete: number) => {
+    const updatedFiles = files.filter((_, index) => index !== indexToDelete);
+    setFiles(updatedFiles);
+    localStorage.setItem("recentFiles", JSON.stringify(updatedFiles));
+  };
+
   if (files.length === 0) return null;
 
   return (
@@ -36,6 +43,15 @@ export default function RecentFiles() {
                 {file.tool} • {file.time}
               </p>
             </div>
+
+            {/* ✅ ADDED — Delete Button */}
+            <button
+              onClick={() => handleDelete(index)}
+              className="text-red-500 hover:text-red-700 text-sm font-medium"
+            >
+              Delete
+            </button>
+
           </div>
         ))}
       </div>
