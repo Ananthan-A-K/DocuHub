@@ -306,11 +306,13 @@ export default function ToolUploadPage() {
                 </p>
               </div>
 
+              {/* ✅ UPDATED REMOVE BUTTON (Icon + Text, No Logic Change) */}
               <button
                 onClick={handleRemoveFile}
-                className="p-2 hover:bg-red-50 rounded-lg transition"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition"
               >
-                <X className="w-5 h-5 text-red-500" />
+                <X className="w-4 h-4" />
+                Remove
               </button>
 
               {isProcessing && (
