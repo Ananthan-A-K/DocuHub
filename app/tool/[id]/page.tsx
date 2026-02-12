@@ -177,19 +177,39 @@ export default function ToolUploadPage() {
 
   /* PROCESS FILE */
   const handleProcessFile = async () => {
-    if (!selectedFile) return;
+  console.log("➡ Process button clicked");
+  console.log("Selected file:", selectedFile);
 
-    setIsProcessing(true);
-    try {
-      const ok = await storeFile(selectedFile);
-      if (ok) router.push(`/tool/${toolId}/processing`);
-      else setFileError("Failed to process file.");
-    } catch {
-      setFileError("Unexpected error occurred.");
-    } finally {
-      setIsProcessing(false);
+  if (!selectedFile) {
+    console.log("❌ No file selected");
+    return;
+  }
+
+  setIsProcessing(true);
+
+  try {
+    console.log("➡ Calling storeFile()...");
+    const ok = await storeFile(selectedFile);
+
+    console.log("➡ storeFile result:", ok);
+
+    if (ok) {
+      console.log("➡ Navigating to processing page");
+      router.push(`/tool/${toolId}/processing`);
+    } else {
+      console.log("❌ storeFile returned false");
+      setFileError("Failed to process file.");
     }
-  };
+
+  } catch (err) {
+    console.log("❌ ERROR in handleProcessFile:", err);
+    setFileError("Unexpected error occurred.");
+  } finally {
+    console.log("➡ Finally block executed");
+    setIsProcessing(false);
+  }
+};
+
 
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
@@ -211,7 +231,7 @@ export default function ToolUploadPage() {
           </h1>
           <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
 
-          <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
+         const handlePr <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
 <ToolCard
   icon={Combine}
   title="Merge PDF"

@@ -17,19 +17,33 @@ export default function ProcessingPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    // Get file from sessionStorage (set by upload page)
-    const storedFile = getStoredFile();
-    if (!storedFile) {
-      router.push(`/tool/${toolId}`);
-      return;
-    }
-    const fileData = storedFile.data;
+ useEffect(() => {
+  const storedFile = getStoredFile();
 
-    if (toolId === "ocr") {
-      runOCR(fileData);
-    }
-  }, [toolId]);
+  if (!storedFile) {
+    router.push(`/tool/${toolId}`);
+    return;
+  }
+
+  const fileData = storedFile.data;
+
+  // ✅ FIX: handle pdf-redact as well
+  if (toolId === "ocr") {
+    runOCR(fileData);
+  }
+  else if (toolId === "pdf-redact") {
+    // For now directly mark as done so editor can load
+    setStatus("done");
+    clearStoredFile();
+  }
+  else {
+    // Other tools not implemented yet
+    setStatus("done");
+    clearStoredFile();
+  }
+
+}, [toolId]);
+
 
   const runOCR = async (base64Data: string) => {
     setStatus("processing");
