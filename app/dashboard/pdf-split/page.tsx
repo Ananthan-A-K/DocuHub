@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { PDFDocument } from 'pdf-lib';
+import { useState } from "react";
+import { PDFDocument } from "pdf-lib";
 
 export default function PdfSplitPage() {
   const [files, setFiles] = useState<File[]>([]);
@@ -24,9 +24,7 @@ export default function PdfSplitPage() {
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  const handleDragLeave = () => setIsDragging(false);
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -36,21 +34,13 @@ export default function PdfSplitPage() {
       (file) => file.type === "application/pdf"
     );
 
-    if (droppedFiles.length === 0) return;
-
-    setFiles(droppedFiles.slice(0, 1));
+    if (!droppedFiles.length) return;
+    setFiles([droppedFiles[0]]);
   };
 
   const handleSplit = async () => {
-    if (files.length < 1) {
-      alert("Please select a PDF file");
-      return;
-    }
-
-    if (!pageRange) {
-      alert("Please enter page range");
-      return;
-    }
+    if (!files.length) return alert("Please select a PDF file");
+    if (!pageRange) return alert("Please enter page range");
 
     setLoading(true);
 
@@ -66,9 +56,8 @@ export default function PdfSplitPage() {
         const [start, end] = pageRange.split("-").map(Number);
 
         if (isNaN(start) || isNaN(end) || start < 1 || end > pdf.getPageCount()) {
-          alert("Invalid page range");
           setLoading(false);
-          return;
+          return alert("Invalid page range");
         }
 
         for (let i = start; i <= end; i++) {
@@ -78,9 +67,8 @@ export default function PdfSplitPage() {
         const page = Number(pageRange);
 
         if (isNaN(page) || page < 1 || page > pdf.getPageCount()) {
-          alert("Invalid page number");
           setLoading(false);
-          return;
+          return alert("Invalid page number");
         }
 
         pagesToExtract.push(page - 1);
@@ -103,7 +91,6 @@ export default function PdfSplitPage() {
       a.click();
 
       URL.revokeObjectURL(url);
-
     } catch (err) {
       console.error(err);
       alert("Failed to split PDF");
@@ -146,7 +133,7 @@ export default function PdfSplitPage() {
         </p>
       </div>
 
-      {/* File Preview Card */}
+      {/* File Info */}
       {files.map((file, index) => (
         <div
           key={index}
@@ -168,6 +155,16 @@ export default function PdfSplitPage() {
         </div>
       ))}
 
+      {/* PDF Preview */}
+      {files.length > 0 && (
+        <div className="mt-6 border rounded p-4 h-[500px]">
+          <iframe
+            src={URL.createObjectURL(files[0])}
+            className="w-full h-full rounded"
+          />
+        </div>
+      )}
+
       {/* Page Input */}
       <input
         type="text"
@@ -180,16 +177,15 @@ export default function PdfSplitPage() {
       {/* Split Button */}
       <button
         onClick={handleSplit}
-        disabled={loading || files.length < 1}
+        disabled={loading || !files.length}
         className={`w-full mt-6 py-3 rounded-lg font-medium transition ${
-          loading || files.length < 1
+          loading || !files.length
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-indigo-600 hover:bg-indigo-700 text-white"
         }`}
       >
         {loading ? "Splitting PDF..." : "Split PDF"}
       </button>
-
     </div>
   );
 }
