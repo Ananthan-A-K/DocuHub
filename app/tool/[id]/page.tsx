@@ -87,7 +87,7 @@ export default function ToolUploadPage() {
       case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
-      case "pdf-watermark":
+      case "pdf-watermark": // ✅ NEW
         return [".pdf"];
       default:
         return [];
@@ -160,6 +160,8 @@ export default function ToolUploadPage() {
       if (ok) {
         if (toolId === "pdf-watermark") {
           localStorage.setItem("watermarkRotation", rotationAngle.toString());
+        /* ✅ Save watermark text for later processing */
+        if (toolId === "pdf-watermark") {
           localStorage.setItem("watermarkText", watermarkText);
         }
 
@@ -270,12 +272,13 @@ export default function ToolUploadPage() {
           </div>
         )}
 
-        {/* Watermark Text */}
+        {/* ✅ NEW — Watermark Input UI */}
         {toolId === "pdf-watermark" && (
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Watermark Text
             </label>
+
             <input
               type="text"
               value={watermarkText}
