@@ -1,10 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 
 export async function jpgToPdf(file: File): Promise<Uint8Array> {
-  if (!file.type.includes("jpeg") && !file.type.includes("jpg")) {
-    throw new Error("Only JPG images are supported.");
-  }
-
   const bytes = await file.arrayBuffer();
 
   const pdf = await PDFDocument.create();
@@ -19,5 +15,7 @@ export async function jpgToPdf(file: File): Promise<Uint8Array> {
     height: image.height,
   });
 
-  return await pdf.save();
+  const pdfBytes: Uint8Array = await pdf.save();
+
+  return pdfBytes;
 }
