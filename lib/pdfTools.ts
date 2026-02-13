@@ -14,6 +14,16 @@ export const PDF_TOOLS = Object.freeze([
     href: "/dashboard/pdf-merge",
     icon: Combine,
   },
+
+  // ✅ ADDED — Document to PDF
+  {
+    id: "document-to-pdf",
+    title: "Document to PDF",
+    description: "Convert documents to PDF",
+    href: "/dashboard/document-to-pdf",
+    icon: FileText,
+  },
+
   {
     id: "pdf-compress",
     title: "Compress PDF",
