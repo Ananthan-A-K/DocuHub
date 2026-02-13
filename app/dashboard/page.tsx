@@ -2,7 +2,7 @@
 import { FileText, ArrowLeftRight, ScanText, LayoutGrid } from "lucide-react";
 import { ToolCard } from "@/components/ToolCard";
 import RecentFiles from "@/components/RecentFiles";
-import RecentlyDeletedFiles from "@/components/RecentlyDeletedFiles"; // ✅ ADDED
+import RecentlyDeletedFiles from "@/components/RecentlyDeletedFiles";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -55,18 +55,16 @@ export default function Dashboard() {
         {lastTool && !hideResume && (
           <div className="
             mb-8 max-w-5xl rounded-xl border p-4 flex items-start justify-between gap-4
-            bg-white dark:bg-slate-800
-            border-gray-200 dark:border-slate-700
-            shadow-sm
+            bg-card border-border shadow-sm
           ">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+              <p className="text-sm text-muted-foreground mb-1">
                 Resume your last tool
               </p>
 
               <Link
                 href={`/tool/${lastTool}`}
-                className="text-base font-semibold text-gray-900 dark:text-white hover:underline"
+                className="text-base font-semibold text-foreground hover:underline"
               >
                 → {lastTool.replace("-", " ").toUpperCase()}
               </Link>
@@ -79,7 +77,7 @@ export default function Dashboard() {
                 }
                 setHideResume(true);
               }}
-              className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              className="text-sm text-muted-foreground hover:text-foreground"
             >
               ✕
             </button>
@@ -90,11 +88,9 @@ export default function Dashboard() {
         {mostUsedTools.length > 0 && (
           <div className="
             mb-10 max-w-5xl p-5 rounded-xl
-            bg-white/80 dark:bg-slate-900/40
-            border border-gray-200 dark:border-slate-700
-            shadow-sm
+            bg-card border border-border shadow-sm
           ">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
               Most Used Tools
             </h2>
 
@@ -105,16 +101,15 @@ export default function Dashboard() {
                   href={`/tool/${tool}`}
                   className="
                   rounded-lg border p-4 transition flex justify-between items-center
-                  bg-white dark:bg-slate-800
-                  border-gray-200 dark:border-slate-700
-                  hover:bg-gray-50 dark:hover:bg-slate-700
+                  bg-card border-border
+                  hover:bg-muted
                 "
                 >
-                  <span className="font-medium text-gray-900 dark:text-white">
+                  <span className="font-medium text-foreground">
                     {tool.replace("-", " ").toUpperCase()}
                   </span>
 
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-muted-foreground">
                     {count} uses
                   </span>
                 </Link>
@@ -126,15 +121,13 @@ export default function Dashboard() {
         {/* Choose Tool Header */}
         <div className="
           mb-12 p-5 rounded-xl
-          bg-white/80 dark:bg-slate-900/40
-          border border-gray-200 dark:border-slate-700
-          shadow-sm
+          bg-card border border-border shadow-sm
         ">
-          <h1 className="text-3xl font-semibold tracking-tight mb-2 text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-semibold tracking-tight mb-2 text-foreground">
             Choose a tool
           </h1>
 
-          <p className="text-gray-600 dark:text-gray-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Select what you want to do with your file
           </p>
         </div>
@@ -180,7 +173,7 @@ export default function Dashboard() {
 
         <RecentFiles />
 
-        {/* ✅ Recently Deleted Section */}
+        {/* Recently Deleted */}
         <RecentlyDeletedFiles />
 
       </main>
