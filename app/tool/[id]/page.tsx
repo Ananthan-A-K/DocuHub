@@ -5,11 +5,11 @@ import {
   Upload,
   Loader2,
   FileText,
-  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
-import { PDF_TOOLS } from "@/lib/pdfTools"; // ✅ LOCKED SOURCE
+import { PDF_TOOLS } from "@/lib/pdfTools";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -36,10 +36,6 @@ export default function ToolUploadPage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
-  const [password, setPassword] = useState("");
-  const [compressionLevel, setCompressionLevel] = useState<
-    "low" | "medium" | "high"
-  >("medium");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -82,6 +78,7 @@ export default function ToolUploadPage() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedWork]);
 
+  /* ---------------- Supported Types ---------------- */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
@@ -90,14 +87,28 @@ export default function ToolUploadPage() {
       case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
-      case "pdf-redact":
         return [".pdf"];
       default:
         return [];
     }
   };
 
-  /* ---------------- Handle file select ---------------- */
+  /* ---------------- File Icon ---------------- */
+  const getFileIcon = (file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
+    if (ext === "pdf") {
+      return <FileText className="w-6 h-6 text-red-500" />;
+    }
+
+    if (["jpg", "jpeg", "png"].includes(ext || "")) {
+      return <ImageIcon className="w-6 h-6 text-blue-500" />;
+    }
+
+    return <FileText className="w-6 h-6 text-gray-400" />;
+  };
+
+  /* ---------------- File Select ---------------- */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -120,7 +131,7 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* ---------------- Remove file ---------------- */
+  /* ---------------- Remove File ---------------- */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
       "This will remove your uploaded file. Continue?"
@@ -130,35 +141,25 @@ export default function ToolUploadPage() {
     setSelectedFile(null);
     setPersistedFileMeta(null);
     setFileError(null);
-    setPassword("");
     clearToolState(toolId);
     setHasUnsavedWork(false);
 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /* ---------------- Replace file ---------------- */
+  /* ---------------- Replace File ---------------- */
   const handleReplaceFile = () => {
     fileInputRef.current?.click();
   };
 
-  /* ---------------- Process file ---------------- */
+  /* ---------------- Process File ---------------- */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
-
-    if (toolId === "pdf-protect" && !password.trim()) {
-      setFileError("Please enter a password to protect the PDF.");
-      return;
-    }
 
     setIsProcessing(true);
 
     try {
-      const ok = await storeFile(selectedFile, {
-        password: toolId === "pdf-protect" ? password : undefined,
-        compressionLevel:
-          toolId === "pdf-compress" ? compressionLevel : undefined,
-      });
+      const ok = await storeFile(selectedFile);
 
       if (ok) {
         clearToolState(toolId);
@@ -183,7 +184,7 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* ================= PDF TOOLS PAGE (LOCKED) ================= */
+  /* ================= PDF TOOLS PAGE ================= */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -249,85 +250,59 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
-        {!selectedFile && (
-          <p className="mt-6 text-sm text-muted-foreground text-center">
-            No file selected. Upload a file to continue.
-          </p>
-        )}
-
         {selectedFile && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm">
-              <FileText className="w-8 h-8 text-blue-500" />
-              <div className="flex-1">
-                <p className="font-medium">{selectedFile.name}</p>
-                <p className="text-sm text-gray-500">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
+          <div
+            className="
+              mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm
+              transition
+              hover:bg-gray-50
+              hover:border-gray-300
+            "
+          >
+            {getFileIcon(selectedFile)}
 
-              <button
-                onClick={handleReplaceFile}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Replace
-              </button>
-
-              <button
-                onClick={handleRemoveFile}
-                className="text-sm text-red-600 hover:underline"
-              >
-                Remove
-              </button>
+            <div className="flex-1">
+              <p className="font-medium">{selectedFile.name}</p>
+              <p className="text-sm text-gray-500">
+                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </p>
             </div>
 
-            {toolId === "pdf-protect" && (
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <label className="block text-sm font-medium mb-2">
-                  Enter Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-            )}
-
-            {toolId === "pdf-compress" && (
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <p className="font-medium mb-3">Compression Level</p>
-                {(["low", "medium", "high"] as const).map((level) => (
-                  <label key={level} className="block text-sm">
-                    <input
-                      type="radio"
-                      checked={compressionLevel === level}
-                      onChange={() => setCompressionLevel(level)}
-                      className="mr-2"
-                    />
-                    {level}
-                  </label>
-                ))}
-              </div>
-            )}
+            <button
+              onClick={handleReplaceFile}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Replace
+            </button>
 
             <button
-              onClick={handleProcessFile}
-              disabled={isProcessing}
-              className="px-5 py-2.5 bg-black text-white rounded-lg flex items-center gap-2 disabled:opacity-60"
+              onClick={handleRemoveFile}
+              className="text-sm text-red-600 hover:underline"
             >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                "Process File"
-              )}
+              Remove
             </button>
           </div>
         )}
+
+        <button
+          onClick={handleProcessFile}
+          disabled={!selectedFile || isProcessing}
+          className={`mt-8 w-full py-3 rounded-lg text-sm font-medium transition
+            ${
+              selectedFile && !isProcessing
+                ? "bg-black text-white hover:bg-gray-800"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+        >
+          {isProcessing ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </span>
+          ) : (
+            "Process File"
+          )}
+        </button>
 
         {fileError && (
           <p className="mt-3 text-sm text-red-600">{fileError}</p>
