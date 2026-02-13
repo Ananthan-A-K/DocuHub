@@ -19,13 +19,27 @@ export default function RecentlyDeletedFiles() {
     }
   }, []);
 
+  const clearHistory = () => {
+    localStorage.removeItem("deletedRecentFiles");
+    setDeletedFiles([]);
+  };
+
   if (deletedFiles.length === 0) return null;
 
   return (
     <div className="mt-12">
-      <h2 className="text-xl font-semibold mb-4 text-red-600">
-        Recently Deleted
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-red-600">
+          Recently Deleted
+        </h2>
+
+        <button
+          onClick={clearHistory}
+          className="text-sm px-3 py-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition"
+        >
+          Clear History
+        </button>
+      </div>
 
       <div className="space-y-3">
         {deletedFiles.map((file, index) => (
