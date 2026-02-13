@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
-import { PDF_TOOLS } from "@/lib/pdfTools"; // ✅ LOCKED SOURCE
+import { PDF_TOOLS } from "@/lib/pdfTools";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -37,10 +37,6 @@ export default function ToolUploadPage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
-  const [password, setPassword] = useState("");
-  const [compressionLevel, setCompressionLevel] = useState<
-    "low" | "medium" | "high"
-  >("medium");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -92,14 +88,13 @@ export default function ToolUploadPage() {
       case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
-      case "pdf-redact":
         return [".pdf"];
       default:
         return [];
     }
   };
 
-  /* ---------------- File Icon Logic (NEW FEATURE) ---------------- */
+  /* ---------------- File Icon Logic ---------------- */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -123,4 +118,197 @@ export default function ToolUploadPage() {
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
 
     if (allowed.length && !allowed.includes(ext)) {
-      setFileError(`Un
+      setFileError(`Unsupported file type. Allowed: ${allowed.join(", ")}`);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError("File too large. Max size is 10MB.");
+      return;
+    }
+
+    setFileError(null);
+    setSelectedFile(file);
+    setHasUnsavedWork(true);
+  };
+
+  /* ---------------- Remove File ---------------- */
+  const handleRemoveFile = () => {
+    const confirmed = window.confirm(
+      "This will remove your uploaded file. Continue?"
+    );
+    if (!confirmed) return;
+
+    setSelectedFile(null);
+    setPersistedFileMeta(null);
+    setFileError(null);
+    clearToolState(toolId);
+    setHasUnsavedWork(false);
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  /* ---------------- Replace File ---------------- */
+  const handleReplaceFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  /* ---------------- Process File ---------------- */
+  const handleProcessFile = async () => {
+    if (!selectedFile) return;
+
+    setIsProcessing(true);
+
+    try {
+      const ok = await storeFile(selectedFile);
+
+      if (ok) {
+        clearToolState(toolId);
+        router.push(`/tool/${toolId}/processing`);
+      } else {
+        setFileError("Failed to process file.");
+      }
+    } catch {
+      setFileError("Unexpected error occurred.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBackNavigation = () => {
+    if (hasUnsavedWork) {
+      const confirmLeave = window.confirm(
+        "You have unsaved work. Leave anyway?"
+      );
+      if (!confirmLeave) return;
+    }
+    router.push("/dashboard");
+  };
+
+  /* ================= PDF TOOLS PAGE ================= */
+  if (toolId === "pdf-tools") {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <main className="container mx-auto px-6 py-12 md:px-12">
+          <h1 className="text-3xl font-semibold mb-2">PDF Tools</h1>
+          <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
+
+          <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
+            {PDF_TOOLS.map((tool) => (
+              <ToolCard
+                key={tool.id}
+                icon={tool.icon}
+                title={tool.title}
+                description={tool.description}
+                href={tool.href}
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  /* ================= UPLOAD PAGE ================= */
+  return (
+    <div className="min-h-screen flex flex-col">
+      <main className="container mx-auto px-6 py-12 md:px-12">
+        <button
+          onClick={handleBackNavigation}
+          className="inline-flex items-center gap-2 text-sm mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </button>
+
+        <h1 className="text-3xl font-semibold mb-8">Upload your file</h1>
+
+        <motion.div
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDraggingOver(true);
+          }}
+          onDragLeave={() => setIsDraggingOver(false)}
+          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer ${
+            isDraggingOver
+              ? "border-blue-500 bg-blue-50"
+              : "hover:border-gray-400 hover:bg-gray-50"
+          }`}
+        >
+          <Upload className="mx-auto mb-4" />
+          <p>
+            {persistedFileMeta
+              ? `Previously selected: ${persistedFileMeta.name}`
+              : "Drag & drop or click to browse"}
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept={getSupportedTypes().join(",")}
+            onChange={handleFile}
+          />
+        </motion.div>
+
+        {!selectedFile && (
+          <p className="mt-6 text-sm text-muted-foreground text-center">
+            No file selected. Upload a file to continue.
+          </p>
+        )}
+
+        {selectedFile && (
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm">
+              {getFileIcon(selectedFile)}
+              <div className="flex-1">
+                <p className="font-medium">{selectedFile.name}</p>
+                <p className="text-sm text-gray-500">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+
+              <button
+                onClick={handleReplaceFile}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Replace
+              </button>
+
+              <button
+                onClick={handleRemoveFile}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+
+            <button
+              onClick={handleProcessFile}
+              disabled={!selectedFile || isProcessing}
+              className={`w-full py-3 rounded-lg text-sm font-medium transition
+                ${
+                  selectedFile && !isProcessing
+                    ? "bg-black text-white hover:bg-gray-800"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+            >
+              {isProcessing ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </span>
+              ) : (
+                "Process File"
+              )}
+            </button>
+          </div>
+        )}
+
+        {fileError && (
+          <p className="mt-3 text-sm text-red-600">{fileError}</p>
+        )}
+      </main>
+    </div>
+  );
+}
