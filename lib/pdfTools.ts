@@ -59,4 +59,13 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/metadata-viewer",
     icon: FileText,
   },
+
+  // ✅ NEW — Watermark Tool (ONLY ADDITION)
+  {
+    id: "pdf-watermark",
+    title: "Watermark PDF",
+    description: "Add text watermark to PDF files",
+    href: "/tool/pdf-watermark",
+    icon: FileText,
+  },
 ]);
