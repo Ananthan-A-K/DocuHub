@@ -4,6 +4,7 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Copy,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -112,17 +113,7 @@ export default function ProcessingPage() {
         throw new Error(data.error || "Compression failed");
       }
 
-      const decoded = Uint8Array.from(
-        atob(data.file),
-        (c) => c.charCodeAt(0)
-      );
-
-      const blob = new Blob([decoded], {
-        type: "application/pdf",
-      });
-
-      const url = URL.createObjectURL(blob);
-      localStorage.setItem("compressedPDF", url);
+      setCompressedPdfData(data.file);
 
       setProgress(100);
       setStatus("done");
@@ -135,14 +126,14 @@ export default function ProcessingPage() {
   };
 
   /* --------------------------------------------------
-     PDF PROTECT (Structure Only – pdf-lib has no encryption)
+     PDF PROTECT
   -------------------------------------------------- */
   const protectPDF = async (base64Data: string) => {
     setStatus("processing");
     setProgress(20);
 
-    // Store the base64 data instead of object URL
-    setCompressedPdfData(data.file);
+    try {
+      const cleanedBase64 = base64Data.split(",")[1] || base64Data;
 
       const pdfBytes = Uint8Array.from(
         atob(cleanedBase64),
@@ -155,12 +146,9 @@ export default function ProcessingPage() {
 
       setProgress(70);
 
-      // pdf-lib does NOT support real encryption
       const savedBytes = await pdfDoc.save();
 
-      const safeBytes = new Uint8Array(savedBytes);
-
-      const blob = new Blob([safeBytes], {
+      const blob = new Blob([savedBytes], {
         type: "application/pdf",
       });
 
@@ -175,6 +163,16 @@ export default function ProcessingPage() {
       setStatus("error");
       setErrorMessage("Failed to protect PDF.");
     }
+  };
+
+  /* --------------------------------------------------
+     COPY HANDLER
+  -------------------------------------------------- */
+  const handleCopyText = async () => {
+    if (!extractedText) return;
+    await navigator.clipboard.writeText(extractedText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   /* --------------------------------------------------
@@ -212,74 +210,60 @@ export default function ProcessingPage() {
             <h2 className="text-2xl font-semibold text-[#1e1e2e] mb-2">
               {toolId === "pdf-compress"
                 ? "PDF Compressed Successfully!"
+                : toolId === "pdf-protect"
+                ? "PDF Protected Successfully!"
                 : "Text Extracted Successfully!"}
             </h2>
-
           </div>
 
-          {/* Actions */}
           <div className="flex justify-center gap-4 mb-6">
-            <button
-              onClick={handleCopyText}
-              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
-            >
-              <Copy className="w-4 h-4" />
-              {copied ? "Copied!" : "Copy Text"}
-            </button>
+            {toolId === "ocr" && (
+              <button
+                onClick={handleCopyText}
+                className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
+              >
+                <Copy className="w-4 h-4" />
+                {copied ? "Copied!" : "Copy Text"}
+              </button>
+            )}
 
-            {toolId === "pdf-compress" ? (
-            <button
-  onClick={() => {
-  if (compressedPdfData) {
-    const blob = new Blob(
-      [Uint8Array.from(atob(compressedPdfData), c => c.charCodeAt(0))],
-      { type: "application/pdf" }
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "compressed.pdf";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-}}
-
-  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
->
-
-          {toolId === "pdf-compress" && (
-            <button
-              onClick={() => {
-                const url = localStorage.getItem("compressedPDF");
-                if (url) {
+            {toolId === "pdf-compress" && compressedPdfData && (
+              <button
+                onClick={() => {
+                  const blob = new Blob(
+                    [Uint8Array.from(atob(compressedPdfData), (c) => c.charCodeAt(0))],
+                    { type: "application/pdf" }
+                  );
+                  const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
                   a.download = "compressed.pdf";
                   a.click();
-                }
-              }}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
-            >
-              Download PDF
-            </button>
-          )}
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
+              >
+                Download PDF
+              </button>
+            )}
 
-          {toolId === "pdf-protect" && (
-            <button
-              onClick={() => {
-                const url = localStorage.getItem("protectedPDF");
-                if (url) {
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "protected.pdf";
-                  a.click();
-                }
-              }}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
-            >
-              Download Protected PDF
-            </button>
-          )}
+            {toolId === "pdf-protect" && (
+              <button
+                onClick={() => {
+                  const url = localStorage.getItem("protectedPDF");
+                  if (url) {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "protected.pdf";
+                    a.click();
+                  }
+                }}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
+              >
+                Download Protected PDF
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

@@ -8,6 +8,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false); // ✅ hydration safety
+
   const [lastTool, setLastTool] = useState<string | null>(null);
   const [hideResume, setHideResume] = useState(false);
 
@@ -17,6 +19,8 @@ export default function Dashboard() {
   const pathname = usePathname();
 
   useEffect(() => {
+    setMounted(true); // ✅ ensure client render only
+
     const storedTool = localStorage.getItem("lastUsedTool");
     const dismissedFor = localStorage.getItem("hideResumeFor");
 
@@ -35,6 +39,9 @@ export default function Dashboard() {
       setHideResume(dismissedFor === storedTool);
     }
   }, []);
+
+  // ✅ prevent hydration mismatch render
+  if (!mounted) return null;
 
   const mostUsedTools = Object.entries(toolCounts)
     .sort((a, b) => b[1] - a[1])
