@@ -4,6 +4,7 @@ import {
   Scissors,
   FileText,
   FileUp,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export const PDF_TOOLS = Object.freeze([
@@ -15,13 +16,31 @@ export const PDF_TOOLS = Object.freeze([
     icon: Combine,
   },
 
-  // ✅ Document to PDF
+  // Document → PDF
   {
     id: "document-to-pdf",
     title: "Document to PDF",
     description: "Convert documents to PDF",
     href: "/dashboard/document-to-pdf",
     icon: FileText,
+  },
+
+  // JPEG → PDF
+  {
+    id: "jpeg-to-pdf",
+    title: "JPEG to PDF",
+    description: "Convert JPEG images into PDF",
+    href: "/tool/jpeg-to-pdf",
+    icon: ImageIcon,
+  },
+
+  // PNG → PDF
+  {
+    id: "png-to-pdf",
+    title: "PNG to PDF",
+    description: "Convert PNG images into PDF",
+    href: "/tool/png-to-pdf",
+    icon: ImageIcon,
   },
 
   {
@@ -64,7 +83,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: FileText,
   },
 
-  // ✅ Watermark Tool
+  // Watermark Tool
   {
     id: "pdf-watermark",
     title: "Watermark PDF",

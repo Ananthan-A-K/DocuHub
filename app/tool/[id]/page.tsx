@@ -42,6 +42,9 @@ export default function ToolUploadPage() {
   const [rotationAngle, setRotationAngle] = useState(45);
 
   /* ✅ Opacity State */
+  /* watermark options */
+  const [watermarkText, setWatermarkText] = useState("");
+  const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -52,12 +55,14 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
+  /* restore stored state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
+  /* save state */
   useEffect(() => {
     if (!toolId || !selectedFile) return;
 
@@ -70,47 +75,56 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFile]);
 
+  /* warn before leaving page */
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handler = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
       e.preventDefault();
       e.returnValue = "";
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () =>
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedWork]);
 
+  /* supported file types */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
         return [".jpg", ".jpeg", ".png"];
+
+      case "jpeg-to-pdf":
+        return [".jpg", ".jpeg"];
+
+      case "png-to-pdf":
+        return [".png"];
+
       case "pdf-merge":
       case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
       case "pdf-watermark":
         return [".pdf"];
+
       default:
         return [];
     }
   };
 
+  /* file icon */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
-    if (ext === "pdf") {
+    if (ext === "pdf")
       return <FileText className="w-6 h-6 text-red-500" />;
-    }
 
-    if (["jpg", "jpeg", "png"].includes(ext || "")) {
+    if (["jpg", "jpeg", "png"].includes(ext || ""))
       return <ImageIcon className="w-6 h-6 text-blue-500" />;
-    }
 
     return <FileText className="w-6 h-6 text-gray-400" />;
   };
 
+  /* file select */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -133,6 +147,7 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
+  /* remove file */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
       "This will remove your uploaded file. Continue?"
@@ -148,10 +163,12 @@ export default function ToolUploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  /* replace file */
   const handleReplaceFile = () => {
     fileInputRef.current?.click();
   };
 
+  /* process file */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -171,14 +188,27 @@ export default function ToolUploadPage() {
         router.push(`/tool/${toolId}/processing`);
       } else {
         setFileError("Failed to process file.");
+        return;
       }
-    } catch {
+
+      /* save watermark settings */
+      if (toolId === "pdf-watermark") {
+        localStorage.setItem("watermarkRotation", rotationAngle.toString());
+        localStorage.setItem("watermarkText", watermarkText);
+        localStorage.setItem("watermarkOpacity", opacity.toString());
+      }
+
+      clearToolState(toolId);
+      router.push(`/tool/${toolId}/processing`);
+    } catch (error) {
+      console.error(error);
       setFileError("Unexpected error occurred.");
     } finally {
       setIsProcessing(false);
     }
   };
 
+  /* back navigation */
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
       const confirmLeave = window.confirm(
@@ -189,6 +219,7 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
+  /* PDF tools list */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -212,9 +243,11 @@ export default function ToolUploadPage() {
     );
   }
 
+  /* upload page */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
+
         <button
           onClick={handleBackNavigation}
           className="inline-flex items-center gap-2 text-sm mb-6"
@@ -225,6 +258,7 @@ export default function ToolUploadPage() {
 
         <h1 className="text-3xl font-semibold mb-8">Upload your file</h1>
 
+        {/* Upload box */}
         <motion.div
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => {
@@ -239,11 +273,15 @@ export default function ToolUploadPage() {
           }`}
         >
           <Upload className="mx-auto mb-4" />
+
           <p>
-            {persistedFileMeta
+            {selectedFile
+              ? selectedFile.name
+              : persistedFileMeta
               ? `Previously selected: ${persistedFileMeta.name}`
               : "Drag & drop or click to browse"}
           </p>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -253,8 +291,9 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
+        {/* File preview */}
         {selectedFile && (
-          <div className="mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm hover:bg-gray-50 hover:border-gray-300">
+          <div className="mt-6 flex items-center gap-3 p-4 border rounded-xl bg-white shadow-sm">
             {getFileIcon(selectedFile)}
 
             <div className="flex-1">
@@ -359,6 +398,7 @@ export default function ToolUploadPage() {
         {fileError && (
           <p className="mt-3 text-sm text-red-600">{fileError}</p>
         )}
+
       </main>
     </div>
   );
