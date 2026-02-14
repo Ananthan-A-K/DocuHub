@@ -37,18 +37,16 @@ export default function ToolUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
-  /* ✅ Watermark States */
-  const [watermarkText, setWatermarkText] = useState("");
-  const [rotationAngle, setRotationAngle] = useState(45);
-
-  /* ✅ Opacity State */
-  /* watermark options */
+  /* Watermark */
   const [watermarkText, setWatermarkText] = useState("");
   const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
 
-  /* ✅ Page Number State (NEW) */
+  /* Page Numbers */
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
+
+  /* ✅ NEW FONT SIZE STATE */
+  const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -58,14 +56,12 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
-  /* restore stored state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
-  /* save state */
   useEffect(() => {
     if (!toolId || !selectedFile) return;
 
@@ -78,7 +74,6 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFile]);
 
-  /* warn before leaving page */
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -90,7 +85,6 @@ export default function ToolUploadPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedWork]);
 
-  /* supported file types */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
@@ -115,7 +109,6 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* file icon */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -128,7 +121,6 @@ export default function ToolUploadPage() {
     return <FileText className="w-6 h-6 text-gray-400" />;
   };
 
-  /* file select */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -151,7 +143,6 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* remove file */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
       "This will remove your uploaded file. Continue?"
@@ -167,12 +158,10 @@ export default function ToolUploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /* replace file */
   const handleReplaceFile = () => {
     fileInputRef.current?.click();
   };
 
-  /* process file */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -188,36 +177,26 @@ export default function ToolUploadPage() {
           localStorage.setItem("watermarkOpacity", opacity.toString());
         }
 
-        /* ✅ NEW — Page Number Save */
         if (toolId === "pdf-page-numbers") {
           localStorage.setItem("pageNumberFormat", pageNumberFormat);
+          localStorage.setItem(
+            "pageNumberFontSize",
+            pageNumberFontSize.toString()
+          );
         }
 
         clearToolState(toolId);
         router.push(`/tool/${toolId}/processing`);
       } else {
         setFileError("Failed to process file.");
-        return;
       }
-
-      /* save watermark settings */
-      if (toolId === "pdf-watermark") {
-        localStorage.setItem("watermarkRotation", rotationAngle.toString());
-        localStorage.setItem("watermarkText", watermarkText);
-        localStorage.setItem("watermarkOpacity", opacity.toString());
-      }
-
-      clearToolState(toolId);
-      router.push(`/tool/${toolId}/processing`);
-    } catch (error) {
-      console.error(error);
+    } catch {
       setFileError("Unexpected error occurred.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  /* back navigation */
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
       const confirmLeave = window.confirm(
@@ -228,7 +207,6 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* PDF tools list */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -252,7 +230,6 @@ export default function ToolUploadPage() {
     );
   }
 
-  /* upload page */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
@@ -267,7 +244,6 @@ export default function ToolUploadPage() {
 
         <h1 className="text-3xl font-semibold mb-8">Upload your file</h1>
 
-        {/* Upload box */}
         <motion.div
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => {
@@ -300,7 +276,6 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
-        {/* File preview */}
         {selectedFile && (
           <div className="mt-6 flex items-center gap-3 p-4 border rounded-xl bg-white shadow-sm">
             {getFileIcon(selectedFile)}
@@ -328,23 +303,47 @@ export default function ToolUploadPage() {
           </div>
         )}
 
-        {/* Page Number Format (NEW UI) */}
         {toolId === "pdf-page-numbers" && (
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Page Number Format
-            </label>
+          <>
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Page Number Format
+              </label>
 
-            <select
-              value={pageNumberFormat}
-              onChange={(e) => setPageNumberFormat(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="numeric">1, 2, 3</option>
-              <option value="roman">i, ii, iii</option>
-              <option value="alphabet">A, B, C</option>
-            </select>
-          </div>
+              <select
+                value={pageNumberFormat}
+                onChange={(e) => setPageNumberFormat(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="numeric">1, 2, 3</option>
+                <option value="roman">i, ii, iii</option>
+                <option value="alphabet">A, B, C</option>
+              </select>
+            </div>
+
+            {/* ✅ FONT SIZE SLIDER */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Page Number Font Size ({pageNumberFontSize}px)
+              </label>
+
+              <input
+                type="range"
+                min={8}
+                max={48}
+                value={pageNumberFontSize}
+                onChange={(e) =>
+                  setPageNumberFontSize(Number(e.target.value))
+                }
+                className="w-full"
+              />
+
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>8px</span>
+                <span>48px</span>
+              </div>
+            </div>
+          </>
         )}
 
         <button
@@ -369,7 +368,6 @@ export default function ToolUploadPage() {
         {fileError && (
           <p className="mt-3 text-sm text-red-600">{fileError}</p>
         )}
-
       </main>
     </div>
   );
