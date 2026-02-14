@@ -27,9 +27,6 @@ export default function ProcessingPage() {
   const [copied, setCopied] = useState(false);
   const [compressedPdfData, setCompressedPdfData] = useState<string | null>(null);
 
-  /* --------------------------------------------------
-     INIT
-  -------------------------------------------------- */
   useEffect(() => {
     const storedFile = getStoredFile();
 
@@ -42,19 +39,23 @@ export default function ProcessingPage() {
 
     if (toolId === "ocr") {
       runOCR(fileData);
+
     } else if (toolId === "pdf-compress") {
       startCompressFlow(fileData);
+
     } else if (toolId === "pdf-protect") {
       protectPDF(fileData);
+
+    } else if (toolId === "jpeg-to-pdf") {
+      convertJpegToPdfFlow(fileData);
+
     } else {
       setStatus("done");
       clearStoredFile();
     }
   }, [toolId]);
 
-  /* --------------------------------------------------
-     OCR
-  -------------------------------------------------- */
+  /* OCR */
   const runOCR = async (base64Data: string) => {
     setStatus("processing");
     setProgress(0);
@@ -78,9 +79,7 @@ export default function ProcessingPage() {
     }
   };
 
-  /* --------------------------------------------------
-     PDF COMPRESS
-  -------------------------------------------------- */
+  /* PDF COMPRESS */
   const startCompressFlow = async (base64Data: string) => {
     setStatus("processing");
     setProgress(20);
@@ -109,12 +108,9 @@ export default function ProcessingPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Compression failed");
-      }
+      if (!res.ok) throw new Error(data.error || "Compression failed");
 
       setCompressedPdfData(data.file);
-
       setProgress(100);
       setStatus("done");
       clearStoredFile();
@@ -125,9 +121,7 @@ export default function ProcessingPage() {
     }
   };
 
-  /* --------------------------------------------------
-     PDF PROTECT
-  -------------------------------------------------- */
+  /* PDF PROTECT */
   const protectPDF = async (base64Data: string) => {
     setStatus("processing");
     setProgress(20);
@@ -147,10 +141,9 @@ export default function ProcessingPage() {
       setProgress(70);
 
       const savedBytes = await pdfDoc.save();
+      const buffer = savedBytes.buffer as ArrayBuffer;
 
-      const blob = new Blob([savedBytes], {
-        type: "application/pdf",
-      });
+      const blob = new Blob([buffer], { type: "application/pdf" });
 
       const url = URL.createObjectURL(blob);
       localStorage.setItem("protectedPDF", url);
@@ -165,9 +158,53 @@ export default function ProcessingPage() {
     }
   };
 
-  /* --------------------------------------------------
-     COPY HANDLER
-  -------------------------------------------------- */
+  /* JPEG → PDF */
+  const convertJpegToPdfFlow = async (base64Data: string) => {
+    setStatus("processing");
+    setProgress(20);
+
+    try {
+      const cleanedBase64 = base64Data.split(",")[1] || base64Data;
+
+      const imageBytes = Uint8Array.from(
+        atob(cleanedBase64),
+        (c) => c.charCodeAt(0)
+      );
+
+      setProgress(50);
+
+      const pdfDoc = await PDFDocument.create();
+      const image = await pdfDoc.embedJpg(imageBytes);
+
+      const page = pdfDoc.addPage([image.width, image.height]);
+
+      page.drawImage(image, {
+        x: 0,
+        y: 0,
+        width: image.width,
+        height: image.height,
+      });
+
+      const pdfBytes = await pdfDoc.save();
+
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], {
+        type: "application/pdf",
+      });
+
+      const url = URL.createObjectURL(blob);
+      localStorage.setItem("jpegPdf", url);
+
+      setProgress(100);
+      setStatus("done");
+      clearStoredFile();
+
+    } catch (err) {
+      console.error(err);
+      setStatus("error");
+      setErrorMessage("Failed to convert JPEG to PDF.");
+    }
+  };
+
   const handleCopyText = async () => {
     if (!extractedText) return;
     await navigator.clipboard.writeText(extractedText);
@@ -175,17 +212,13 @@ export default function ProcessingPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  /* --------------------------------------------------
-     UI STATES
-  -------------------------------------------------- */
+  /* UI STATES */
 
   if (status === "processing") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#eef6f5]">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" />
-          <p>{progress}% complete</p>
-        </div>
+        <Loader2 className="h-10 w-10 animate-spin" />
+        <p className="ml-3">{progress}%</p>
       </div>
     );
   }
@@ -205,72 +238,43 @@ export default function ProcessingPage() {
     return (
       <div className="min-h-screen bg-[#eef6f5] py-12">
         <div className="container mx-auto px-6 max-w-3xl">
+
           <div className="text-center mb-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-[#1e1e2e] mb-2">
-              {toolId === "pdf-compress"
-                ? "PDF Compressed Successfully!"
-                : toolId === "pdf-protect"
-                ? "PDF Protected Successfully!"
-                : "Text Extracted Successfully!"}
+            <h2 className="text-2xl font-semibold mb-2">
+              {toolId === "jpeg-to-pdf"
+                ? "JPEG Converted to PDF!"
+                : "Done Successfully!"}
             </h2>
           </div>
 
-          <div className="flex justify-center gap-4 mb-6">
-            {toolId === "ocr" && (
-              <button
-                onClick={handleCopyText}
-                className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
-              >
-                <Copy className="w-4 h-4" />
-                {copied ? "Copied!" : "Copy Text"}
-              </button>
-            )}
-
-            {toolId === "pdf-compress" && compressedPdfData && (
+          {/* DOWNLOAD BUTTON */}
+          {toolId === "jpeg-to-pdf" && (
+            <div className="flex justify-center">
               <button
                 onClick={() => {
-                  const blob = new Blob(
-                    [Uint8Array.from(atob(compressedPdfData), (c) => c.charCodeAt(0))],
-                    { type: "application/pdf" }
-                  );
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "compressed.pdf";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
-              >
-                Download PDF
-              </button>
-            )}
-
-            {toolId === "pdf-protect" && (
-              <button
-                onClick={() => {
-                  const url = localStorage.getItem("protectedPDF");
+                  const url = localStorage.getItem("jpegPdf");
                   if (url) {
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = "protected.pdf";
+                    a.download = "converted.pdf";
                     a.click();
                   }
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
               >
-                Download Protected PDF
+                Download PDF
               </button>
-            )}
-          </div>
+            </div>
+          )}
+
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#eef6f5]">
+    <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin" />
     </div>
   );
