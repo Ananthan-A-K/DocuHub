@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Tesseract from "tesseract.js";
 import { getStoredFiles, clearStoredFiles } from "@/lib/fileStore";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 
 type StoredFile = {
   data: string;
@@ -21,6 +21,7 @@ export default function ProcessingPage() {
   const [status, setStatus] = useState<"processing" | "done" | "error">(
     "processing"
   );
+  const [stage, setStage] = useState("Initializing...");
   const [progress, setProgress] = useState(0);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -59,6 +60,10 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
 }
 
 
+        else if (toolId === "pdf-page-numbers") {
+          await addPageNumbers(stored[0].data);
+        }
+
         else setStatus("done");
       } catch (e) {
         console.error(e);
@@ -73,20 +78,30 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
   }, [toolId, router]);
 
   /* ================= OCR ================= */
-  const runOCR = async (base64: string) => {
-    const res = await Tesseract.recognize(base64, "eng", {
-      logger: (m) => {
-        if (m.status === "recognizing text") {
-          setProgress(Math.round(m.progress * 100));
-        }
-      },
-    });
+ const runOCR = async (base64: string) => {
+  const res = await Tesseract.recognize(base64, "eng", {
+    logger: (m) => {
+      if (m.status === "recognizing text") {
+        setStage("Recognizing Text...");
+        setProgress(Math.round(m.progress * 100));
+      }
+      if (m.status === "loading tesseract core") {
+        setStage("Loading OCR Engine...");
+      }
+    },
+  });
 
-    setText(res.data.text);
-    setStatus("done");
-  };
+  setStage("Finalizing...");
+  setText(res.data.text);
+  setProgress(100);
+  setStatus("done");
+};
+
 
   /* ================= COMPRESS ================= */
+ const startCompressFlow = async (files: StoredFile[]) => {
+  setStage("Preparing file...");
+  setProgress(15);
   const startCompressFlow = async (files: StoredFile[]) => {
     const [originalSize, setOriginalSize] = useState<number | null>(null);
 const [compressedSize, setCompressedSize] = useState<number | null>(null);
@@ -108,11 +123,42 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
       }),
     });
 
-    const data = await res.json();
+  const targetSize = localStorage.getItem("targetSize") || "1MB";
 
-    if (!res.ok || !data?.results?.length) {
-      throw new Error("Compression failed");
-    }
+  const targetBytes = targetSize.includes("KB")
+    ? Number(targetSize.replace("KB", "")) * 1024
+    : Number(targetSize.replace("MB", "")) * 1024 * 1024;
+
+  setStage("Compressing PDF...");
+  setProgress(50);
+
+  const res = await fetch("/api/compress", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      files: files.map((f) => ({ base64: f.data })),
+      targetBytes,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.results?.length) {
+    throw new Error("Compression failed");
+  }
+
+  setStage("Finalizing...");
+  setProgress(85);
+
+  const bytes = Uint8Array.from(
+    atob(data.results[0].file),
+    (c) => c.charCodeAt(0)
+  );
+
+  setDownloadUrl(makeBlobUrl(bytes));
+  setProgress(100);
+  setStatus("done");
+};
 
     const bytes = Uint8Array.from(
       atob(data.results[0].file),
@@ -159,6 +205,74 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
     setStatus("done");
   };
 
+  /* ================= PAGE NUMBERS ================= */
+  const addPageNumbers = async (base64: string) => {
+    const bytes = base64ToBytes(base64);
+    const pdfDoc = await PDFDocument.load(bytes);
+    const pages = pdfDoc.getPages();
+    
+    const format = localStorage.getItem("pageNumberFormat") || "numeric";
+    const fontSize = parseInt(localStorage.getItem("pageNumberFontSize") || "14", 10);
+    
+    const helveticaFont = await pdfDoc.embedFont("Helvetica");
+    
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      const { width, height } = page.getSize();
+      
+      let pageNumText = "";
+      const pageNum = i + 1;
+      
+      if (format === "numeric") {
+        pageNumText = String(pageNum);
+      } else if (format === "Roman") {
+        pageNumText = toRoman(pageNum);
+      } else if (format === "letter") {
+        pageNumText = toLetter(pageNum);
+      }
+      
+      page.drawText(pageNumText, {
+        x: width / 2 - 10,
+        y: 20,
+        size: fontSize,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+    }
+    
+    const saved = await pdfDoc.save();
+    setDownloadUrl(makeBlobUrl(saved));
+    setStatus("done");
+  };
+  
+  const toRoman = (num: number): string => {
+    const romanNumerals: [string, number][] = [
+      ["M", 1000], ["CM", 900], ["D", 500], ["CD", 400],
+      ["C", 100], ["XC", 90], ["L", 50], ["XL", 40],
+      ["X", 10], ["IX", 9], ["V", 5], ["IV", 4], ["I", 1]
+    ];
+    let result = "";
+    let n = num;
+    for (const [letter, value] of romanNumerals) {
+      while (n >= value) {
+        result += letter;
+        n -= value;
+      }
+    }
+    return result;
+  };
+  
+  const toLetter = (num: number): string => {
+    let result = "";
+    let n = num;
+    while (n > 0) {
+      n--;
+      result = String.fromCharCode(65 + (n % 26)) + result;
+      n = Math.floor(n / 26);
+    }
+    return result;
+  };
+
   /* ================= HELPERS ================= */
 
   const base64ToBytes = (base64: string) => {
@@ -189,13 +303,25 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
 
   /* ================= UI STATES ================= */
 
-  if (status === "processing")
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin" />
-        <p className="ml-3">{progress}%</p>
+if (status === "processing")
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md text-center px-6">
+        <Loader2 className="h-10 w-10 animate-spin mx-auto mb-6" />
+
+        <p className="mb-2 text-sm text-gray-600">{stage}</p>
+
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div
+            className="bg-black h-3 transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <p className="mt-2 text-sm font-medium">{progress}%</p>
       </div>
-    );
+    </div>
+  );
 
   if (status === "error")
     return (

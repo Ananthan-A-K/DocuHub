@@ -32,7 +32,7 @@ export default function PdfMergePage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  /* ---------------- Replace File ---------------- */
+  /* ---------- Replace File ---------- */
   const replaceFile = (idToReplace: string, newFile: File) => {
     if (newFile.type !== 'application/pdf') return;
 
@@ -55,9 +55,7 @@ export default function PdfMergePage() {
     setIsDraggingOver(true);
   };
 
-  const handleDragLeave = () => {
-    setIsDraggingOver(false);
-  };
+  const handleDragLeave = () => setIsDraggingOver(false);
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -97,17 +95,15 @@ export default function PdfMergePage() {
     setFilesWithIds((prev) => prev.filter((item) => item.id !== idToRemove));
   };
 
-  const clearAll = () => {
-    setFilesWithIds([]);
-  };
+  const clearAll = () => setFilesWithIds([]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
       setFilesWithIds((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
       });
     }
@@ -164,7 +160,6 @@ export default function PdfMergePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-
       {/* Hidden replace input */}
       <input
         type="file"
@@ -183,7 +178,7 @@ export default function PdfMergePage() {
         <div className="inline-flex items-center justify-center p-3 bg-indigo-100 rounded-2xl text-indigo-600 mb-4">
           <Combine className="w-8 h-8" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+        <h1 className="text-3xl font-bold text-gray-900">
           Merge PDF Files
         </h1>
         <p className="mt-2 text-lg text-gray-600">
@@ -200,23 +195,19 @@ export default function PdfMergePage() {
             />
           </div>
           <p className="text-sm text-gray-500 mt-2 text-center">
-            Processing... {Math.round(uploadProgress)}%
+            Processing… {Math.round(uploadProgress)}%
           </p>
         </div>
       )}
 
-      {/* ✅ Upload Dropzone with focus-visible */}
+      {/* Upload Dropzone */}
       <div
         tabIndex={0}
+        aria-label="Upload PDF files"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-12 transition-all duration-200 text-center
-          focus-visible:outline-none
-          focus-visible:ring-2
-          focus-visible:ring-indigo-500
-          focus-visible:ring-offset-2
-          focus-visible:ring-offset-background
+        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all
           ${
             isDraggingOver
               ? 'border-indigo-500 bg-indigo-50/50'
@@ -228,7 +219,8 @@ export default function PdfMergePage() {
           accept="application/pdf"
           multiple
           onChange={handleFileChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          id="file-upload"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-default"
         />
 
         <div className="flex flex-col items-center">
@@ -293,7 +285,7 @@ export default function PdfMergePage() {
                           input.click();
                         }
                       }}
-                      className="absolute right-20 top-4 text-sm px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition"
+                      className="absolute right-20 top-4 text-sm px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                     >
                       Replace
                     </button>
@@ -312,7 +304,7 @@ export default function PdfMergePage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Merging...
+                  Merging…
                 </>
               ) : (
                 <>

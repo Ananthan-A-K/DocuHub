@@ -41,8 +41,13 @@ export default function ToolUploadPage() {
   const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
 
+  const [pagesToRotate, setPagesToRotate] = useState("");
+
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
+
+  /* ✅ ROTATE PDF STATE (ADDED ONLY) */
+  const [rotationAngleOption, setRotationAngleOption] = useState("90");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -100,6 +105,8 @@ export default function ToolUploadPage() {
       case "pdf-compress":
       case "pdf-watermark":
       case "pdf-page-numbers":
+      case "pdf-rotate":
+      case "pdf-rotate": // ✅ ADDED
         return [".pdf"];
 
       default:
@@ -178,6 +185,11 @@ export default function ToolUploadPage() {
         return;
       }
 
+      if (toolId === "pdf-rotate") {
+        localStorage.setItem("rotationAngle", rotationAngle.toString());
+        localStorage.setItem("pagesToRotate", pagesToRotate);
+      }
+
       if (toolId === "pdf-watermark") {
         localStorage.setItem("watermarkRotation", rotationAngle.toString());
         localStorage.setItem("watermarkText", watermarkText);
@@ -187,6 +199,11 @@ export default function ToolUploadPage() {
       if (toolId === "pdf-page-numbers") {
         localStorage.setItem("pageNumberFormat", pageNumberFormat);
         localStorage.setItem("pageNumberFontSize", pageNumberFontSize.toString());
+      }
+
+      /* ✅ ROTATE SAVE (ADDED ONLY) */
+      if (toolId === "pdf-rotate") {
+        localStorage.setItem("pdfRotateAngle", rotationAngleOption);
       }
 
       clearToolState(toolId);
@@ -272,6 +289,81 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
+        {/* Pages to Rotate */}
+        {toolId === "pdf-rotate" && selectedFiles.length > 0 && (
+          <div className="mt-6">
+            <label className="block text-sm font-medium mb-2">
+              Pages to Rotate (Optional)
+            </label>
+
+            <input
+              type="text"
+              value={pagesToRotate}
+              onChange={e => setPagesToRotate(e.target.value)}
+              placeholder="Example: 1-3,5,7"
+              className="w-full px-4 py-2 border rounded-lg"
+            />
+
+            <p className="text-xs text-gray-500 mt-1">
+              Leave empty to rotate all pages
+            </p>
+          </div>
+        )}
+
+        {/* ✅ ROTATE DEGREE UI */}
+        {toolId === "pdf-rotate" && selectedFiles.length > 0 && (
+          <div className="mt-6">
+            <label className="block text-sm font-medium mb-2">
+              Rotation Degree
+            </label>
+
+            <select
+              value={rotationAngle}
+              onChange={(e) => setRotationAngle(Number(e.target.value))}
+              className="w-full px-4 py-2 border rounded-lg"
+            >
+              <option value={45}>45°</option>
+              <option value={90}>90°</option>
+              <option value={180}>180°</option>
+              <option value={270}>270°</option>
+            </select>
+          </div>
+        )}
+
+        {/* Page Numbers UI */}
+        {toolId === "pdf-page-numbers" && (
+          <div className="mt-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Page Number Format
+              </label>
+              <select
+                value={pageNumberFormat}
+                onChange={e => setPageNumberFormat(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="numeric">Numeric (1, 2, 3)</option>
+                <option value="Roman">Roman (I, II, III)</option>
+                <option value="letter">Letter (A, B, C)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Font Size: {pageNumberFontSize}px
+              </label>
+              <input
+                type="range"
+                min="8"
+                max="24"
+                value={pageNumberFontSize}
+                onChange={e => setPageNumberFontSize(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
+
         {selectedFiles.length > 0 && (
           <div className="mt-6 space-y-3">
             {selectedFiles.map((file, index) => (
@@ -301,7 +393,6 @@ export default function ToolUploadPage() {
                 >
                   Remove
                 </button>
-
               </div>
             ))}
           </div>
