@@ -152,11 +152,12 @@ export default function PdfMergePage() {
         </p>
       </div>
 
-     <div
+    <div
   tabIndex={0}
   onDragOver={handleDragOver}
   onDragLeave={handleDragLeave}
   onDrop={handleDrop}
+
   className={`relative border-2 border-dashed rounded-3xl p-12 transition-all duration-200 text-center
   focus-visible:outline-none
   focus-visible:ring-2
@@ -243,10 +244,12 @@ export default function PdfMergePage() {
 
           <div className="pt-6 border-t border-gray-100 flex justify-center">
             <button
-              onClick={handleMerge}
-              disabled={loading || filesWithIds.length < 2}
-              className={`group relative flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none min-w-[200px] justify-center overflow-hidden`}
-            >
+  onClick={handleMerge}
+  disabled={loading || filesWithIds.length < 2}
+  aria-disabled={loading || filesWithIds.length < 2}
+  className={`group relative flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none min-w-[200px] justify-center overflow-hidden`}
+>
+
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
