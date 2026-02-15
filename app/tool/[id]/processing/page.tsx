@@ -231,6 +231,27 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
           </button>
         )}
 
+        {toolId === "pdf-compress" &&
+  originalSize &&
+  compressedSize && (
+    <div className="mt-6 p-4 bg-gray-100 rounded-lg text-sm">
+      <p>
+        Original Size: {(originalSize / (1024 * 1024)).toFixed(2)} MB
+      </p>
+      <p>
+        Compressed Size: {(compressedSize / (1024 * 1024)).toFixed(2)} MB
+      </p>
+      <p className="font-semibold text-green-600">
+        Reduced by {(
+          ((originalSize - compressedSize) / originalSize) *
+          100
+        ).toFixed(1)}
+        %
+      </p>
+    </div>
+  )}
+
+
         {toolId === "ocr" && (
           <button
             onClick={copyText}
