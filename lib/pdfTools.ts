@@ -111,12 +111,21 @@ export const PDF_TOOLS = Object.freeze([
     icon: ImageIcon,
   },
 
-  // ✅ NEW — Rotate PDF Tool (ONLY ADDITION)
+  // ✅ Rotate PDF Tool
   {
     id: "pdf-rotate",
     title: "Rotate PDF",
     description: "Rotate PDF pages",
     href: "/tool/pdf-rotate",
     icon: RotateCw,
+  },
+
+  // ✅ NEW — Delete Pages Tool (ONLY ADDITION)
+  {
+    id: "pdf-delete-pages",
+    title: "Delete PDF Pages",
+    description: "Remove selected pages from PDF",
+    href: "/tool/pdf-delete-pages",
+    icon: Scissors,
   },
 ]);
