@@ -59,6 +59,15 @@ export const PDF_TOOLS = Object.freeze([
     icon: Scissors,
   },
 
+  // ✅ NEW ROTATE TOOL
+  {
+    id: "pdf-rotate",
+    title: "Rotate PDF",
+    description: "Rotate PDF pages",
+    href: "/tool/pdf-rotate",
+    icon: FileText,
+  },
+
   {
     id: "pdf-protect",
     title: "Protect PDF",
@@ -92,7 +101,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: FileText,
   },
 
-  // ✅ NEW — Page Numbers Tool
+  // Page Numbers Tool
   {
     id: "pdf-page-numbers",
     title: "Add Page Numbers",
@@ -101,7 +110,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: FileText,
   },
 
-  // ✅ NEW — Extract Images Tool
+  // Extract Images Tool
   {
     id: "pdf-extract-images",
     title: "Extract Images",
