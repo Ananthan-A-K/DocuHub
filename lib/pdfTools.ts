@@ -100,4 +100,13 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-page-numbers",
     icon: FileText,
   },
+
+  // ✅ NEW — Extract Images Tool
+  {
+    id: "pdf-extract-images",
+    title: "Extract Images",
+    description: "Extract embedded images from PDF",
+    href: "/tool/pdf-extract-images",
+    icon: ImageIcon,
+  },
 ]);
