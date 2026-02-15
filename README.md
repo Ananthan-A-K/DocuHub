@@ -321,6 +321,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 Here are some screenshots showing DocuHub in action — all processing happens locally in your browser.
 
+### 🔹 Tool Workflow
+1. Select tool
+2. Upload file
+3. Processing (WebAssembly worker)
+4. Download result
+
+### 🔹 Example: Merge PDF Flow
+- Drag and drop files
+- Reorder pages
+- Preview thumbnails
+- Export merged document
+
 ### Landing Page
 **Privacy-first document processing - all tools in one place**
 
