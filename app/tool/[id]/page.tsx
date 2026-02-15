@@ -300,6 +300,40 @@ export default function ToolUploadPage() {
           </div>
         )}
 
+        {/* Page Numbers UI */}
+        {toolId === "pdf-page-numbers" && (
+          <div className="mt-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Page Number Format
+              </label>
+              <select
+                value={pageNumberFormat}
+                onChange={e => setPageNumberFormat(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="numeric">Numeric (1, 2, 3)</option>
+                <option value="Roman">Roman (I, II, III)</option>
+                <option value="letter">Letter (A, B, C)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Font Size: {pageNumberFontSize}px
+              </label>
+              <input
+                type="range"
+                min="8"
+                max="24"
+                value={pageNumberFontSize}
+                onChange={e => setPageNumberFontSize(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
+
         {selectedFiles.length > 0 && (
           <div className="mt-6 space-y-3">
             {selectedFiles.map((file, index) => (

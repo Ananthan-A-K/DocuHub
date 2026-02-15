@@ -6,7 +6,6 @@ import { encryptPDF } from "@pdfsmaller/pdf-encrypt-lite";
 export default function PdfProtectPage() {
 
   const [file, setFile] = useState<File | null>(null);
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   // NEW: feedback states
@@ -40,9 +39,12 @@ export default function PdfProtectPage() {
 
     }
 
-    if (!password) {
+    // Show password prompt
+    const userPassword = window.prompt("Enter password to protect the PDF:");
 
-      setError("Please enter a password.");
+    if (!userPassword) {
+
+      setError("Password is required.");
       return;
 
     }
@@ -57,8 +59,8 @@ export default function PdfProtectPage() {
 
       const encryptedBytes = await encryptPDF(
         pdfBytes,
-        password,
-        password
+        userPassword,
+        userPassword
       );
 
       const blob = new Blob(
@@ -120,6 +122,7 @@ export default function PdfProtectPage() {
         </div>
       )}
 
+      {/* File input - always visible */}
       <input
         type="file"
         accept="application/pdf"
@@ -127,27 +130,20 @@ export default function PdfProtectPage() {
         className="mb-4 block w-full border border-gray-300 p-2 rounded"
       />
 
-      <input
-        type="password"
-        placeholder="Enter password"
-        value={password}
-        onChange={(e) =>
-          setPassword(e.target.value)
-        }
-        className="mb-4 block w-full border border-gray-300 p-2 rounded"
-      />
-
-   <button
-  onClick={protectPdf}
-  disabled={loading}
-  className={`px-4 py-2.5 rounded text-white transition ${
-    loading
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-blue-600 hover:bg-blue-700"
-  }`}
->
-  {loading ? "Protecting..." : "Protect PDF"}
-</button>
+      {/* Protect button - only visible after file is uploaded */}
+      {file && (
+        <button
+          onClick={protectPdf}
+          disabled={loading}
+          className={`px-4 py-2.5 rounded text-white transition ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
+        >
+          {loading ? "Protecting..." : "Protect PDF"}
+        </button>
+      )}
 
 
     </div>

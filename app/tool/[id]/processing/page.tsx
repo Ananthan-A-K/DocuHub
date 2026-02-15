@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Tesseract from "tesseract.js";
 import { getStoredFiles, clearStoredFiles } from "@/lib/fileStore";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 
 type StoredFile = {
   data: string;
@@ -58,6 +58,10 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
   await startCompressFlow(stored);
 }
 
+
+        else if (toolId === "pdf-page-numbers") {
+          await addPageNumbers(stored[0].data);
+        }
 
         else setStatus("done");
       } catch (e) {
@@ -157,6 +161,74 @@ const [compressedSize, setCompressedSize] = useState<number | null>(null);
     const saved = await pdf.save();
     setDownloadUrl(makeBlobUrl(saved));
     setStatus("done");
+  };
+
+  /* ================= PAGE NUMBERS ================= */
+  const addPageNumbers = async (base64: string) => {
+    const bytes = base64ToBytes(base64);
+    const pdfDoc = await PDFDocument.load(bytes);
+    const pages = pdfDoc.getPages();
+    
+    const format = localStorage.getItem("pageNumberFormat") || "numeric";
+    const fontSize = parseInt(localStorage.getItem("pageNumberFontSize") || "14", 10);
+    
+    const helveticaFont = await pdfDoc.embedFont("Helvetica");
+    
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      const { width, height } = page.getSize();
+      
+      let pageNumText = "";
+      const pageNum = i + 1;
+      
+      if (format === "numeric") {
+        pageNumText = String(pageNum);
+      } else if (format === "Roman") {
+        pageNumText = toRoman(pageNum);
+      } else if (format === "letter") {
+        pageNumText = toLetter(pageNum);
+      }
+      
+      page.drawText(pageNumText, {
+        x: width / 2 - 10,
+        y: 20,
+        size: fontSize,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+    }
+    
+    const saved = await pdfDoc.save();
+    setDownloadUrl(makeBlobUrl(saved));
+    setStatus("done");
+  };
+  
+  const toRoman = (num: number): string => {
+    const romanNumerals: [string, number][] = [
+      ["M", 1000], ["CM", 900], ["D", 500], ["CD", 400],
+      ["C", 100], ["XC", 90], ["L", 50], ["XL", 40],
+      ["X", 10], ["IX", 9], ["V", 5], ["IV", 4], ["I", 1]
+    ];
+    let result = "";
+    let n = num;
+    for (const [letter, value] of romanNumerals) {
+      while (n >= value) {
+        result += letter;
+        n -= value;
+      }
+    }
+    return result;
+  };
+  
+  const toLetter = (num: number): string => {
+    let result = "";
+    let n = num;
+    while (n > 0) {
+      n--;
+      result = String.fromCharCode(65 + (n % 26)) + result;
+      n = Math.floor(n / 26);
+    }
+    return result;
   };
 
   /* ================= HELPERS ================= */
