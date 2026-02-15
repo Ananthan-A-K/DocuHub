@@ -178,7 +178,7 @@ export default function PdfMergePage() {
         <div className="inline-flex items-center justify-center p-3 bg-indigo-100 rounded-2xl text-indigo-600 mb-4">
           <Combine className="w-8 h-8" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+        <h1 className="text-3xl font-bold text-gray-900">
           Merge PDF Files
         </h1>
         <p className="mt-2 text-lg text-gray-600">
@@ -200,19 +200,14 @@ export default function PdfMergePage() {
         </div>
       )}
 
-      {/* ✅ Accessible Upload Dropzone */}
+      {/* Upload Dropzone */}
       <div
         tabIndex={0}
         aria-label="Upload PDF files"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-12 transition-all duration-200 text-center
-          focus-visible:outline-none
-          focus-visible:ring-2
-          focus-visible:ring-indigo-500
-          focus-visible:ring-offset-2
-          focus-visible:ring-offset-background
+        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all
           ${
             isDraggingOver
               ? 'border-indigo-500 bg-indigo-50/50'
@@ -224,7 +219,8 @@ export default function PdfMergePage() {
           accept="application/pdf"
           multiple
           onChange={handleFileChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          id="file-upload"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-default"
         />
 
         <div className="flex flex-col items-center">
@@ -303,8 +299,7 @@ export default function PdfMergePage() {
             <button
               onClick={handleMerge}
               disabled={loading || filesWithIds.length < 2}
-              aria-disabled={loading || filesWithIds.length < 2}
-              className="group flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
