@@ -13,7 +13,10 @@ export function ToolCard({ icon: Icon, title, description, href, disabled }: Too
     return (
         <Link
             href={disabled ? "#" : href}
-            className={`group relative flex items-center justify-between p-6 rounded-2xl border border-white/40 bg-white/40 backdrop-blur-sm transition-all hover:bg-white/60 hover:shadow-sm hover:border-white/60 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+            className={`group relative flex items-center justify-between p-6 rounded-2xl border border-white/40 bg-white/40 backdrop-blur-sm transition-all enabled:hover:bg-white/60
+enabled:hover:shadow-sm
+enabled:hover:border-white/60
+ ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
             <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-transparent sm:bg-transparent text-[#4a5568]">
@@ -29,7 +32,13 @@ export function ToolCard({ icon: Icon, title, description, href, disabled }: Too
                 </div>
             </div>
 
-            <ArrowRight className="h-5 w-5 text-[#1e1e2e] opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+<ArrowRight
+  className={`h-5 w-5 text-[#1e1e2e] transition-all
+    ${disabled
+      ? "opacity-30"
+      : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+    }`}
+/>
         </Link>
     );
 }
