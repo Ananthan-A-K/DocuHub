@@ -88,39 +88,47 @@ export default function ProcessingPage() {
 
 
   /* ================= COMPRESS ================= */
-  const startCompressFlow = async (files: StoredFile[]) => {
-    setProgress(20);
+ const startCompressFlow = async (files: StoredFile[]) => {
+  setStage("Preparing file...");
+  setProgress(15);
 
-    const targetSize = localStorage.getItem("targetSize") || "1MB";
+  const targetSize = localStorage.getItem("targetSize") || "1MB";
 
-    const targetBytes = targetSize.includes("KB")
-      ? Number(targetSize.replace("KB", "")) * 1024
-      : Number(targetSize.replace("MB", "")) * 1024 * 1024;
+  const targetBytes = targetSize.includes("KB")
+    ? Number(targetSize.replace("KB", "")) * 1024
+    : Number(targetSize.replace("MB", "")) * 1024 * 1024;
 
-    const res = await fetch("/api/compress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        files: files.map((f) => ({ base64: f.data })),
-        targetBytes,
-      }),
-    });
+  setStage("Compressing PDF...");
+  setProgress(50);
 
-    const data = await res.json();
+  const res = await fetch("/api/compress", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      files: files.map((f) => ({ base64: f.data })),
+      targetBytes,
+    }),
+  });
 
-    if (!res.ok || !data?.results?.length) {
-      throw new Error("Compression failed");
-    }
+  const data = await res.json();
 
-    const bytes = Uint8Array.from(
-      atob(data.results[0].file),
-      (c) => c.charCodeAt(0)
-    );
+  if (!res.ok || !data?.results?.length) {
+    throw new Error("Compression failed");
+  }
 
-    setDownloadUrl(makeBlobUrl(bytes));
-    setProgress(100);
-    setStatus("done");
-  };
+  setStage("Finalizing...");
+  setProgress(85);
+
+  const bytes = Uint8Array.from(
+    atob(data.results[0].file),
+    (c) => c.charCodeAt(0)
+  );
+
+  setDownloadUrl(makeBlobUrl(bytes));
+  setProgress(100);
+  setStatus("done");
+};
+
 
   /* ================= PDF PROTECT ================= */
   const protectPDF = async (base64: string) => {
