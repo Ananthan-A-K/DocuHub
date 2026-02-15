@@ -194,13 +194,25 @@ export default function ProcessingPage() {
 
   /* ================= UI STATES ================= */
 
-  if (status === "processing")
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin" />
-        <p className="ml-3">{progress}%</p>
+if (status === "processing")
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md text-center px-6">
+        <Loader2 className="h-10 w-10 animate-spin mx-auto mb-6" />
+
+        <p className="mb-2 text-sm text-gray-600">{stage}</p>
+
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div
+            className="bg-black h-3 transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <p className="mt-2 text-sm font-medium">{progress}%</p>
       </div>
-    );
+    </div>
+  );
 
   if (status === "error")
     return (
