@@ -151,26 +151,25 @@ export default function PdfMergePage() {
           Combine multiple PDF documents into a single file. Reorder them as needed.
         </p>
       </div>
-
-    <div
+<div
   tabIndex={0}
+  aria-label="Upload PDF files"
   onDragOver={handleDragOver}
   onDragLeave={handleDragLeave}
   onDrop={handleDrop}
-
   className={`relative border-2 border-dashed rounded-3xl p-12 transition-all duration-200 text-center
-  focus-visible:outline-none
-  focus-visible:ring-2
-  focus-visible:ring-indigo-500
-  focus-visible:ring-offset-2
-  focus-visible:ring-offset-background
-  ${
-    isDraggingOver
-      ? 'border-indigo-500 bg-indigo-50/50'
-      : 'border-gray-200 bg-white hover:border-gray-300'
-  }`}
+    focus-visible:outline-none
+    focus-visible:ring-2
+    focus-visible:ring-indigo-500
+    focus-visible:ring-offset-2
+    focus-visible:ring-offset-background
+    ${
+      isDraggingOver
+        ? 'border-indigo-500 bg-indigo-50/50'
+        : 'border-gray-200 bg-white hover:border-gray-300'
+    }`}
+>
 
-      >
         <input
           type="file"
           accept="application/pdf"
