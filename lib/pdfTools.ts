@@ -73,7 +73,7 @@ export const PDF_TOOLS = Object.freeze([
     id: "pdf-protect",
     title: "Protect PDF",
     description: "Add password protection",
-    href: "/tool/pdf-protect",
+    href: "/dashboard/pdf-protect",
     icon: FileText,
   },
 
