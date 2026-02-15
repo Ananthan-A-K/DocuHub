@@ -21,6 +21,7 @@ export default function ProcessingPage() {
   const [status, setStatus] = useState<"processing" | "done" | "error">(
     "processing"
   );
+  const [stage, setStage] = useState("Initializing...");
   const [progress, setProgress] = useState(0);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -66,18 +67,25 @@ export default function ProcessingPage() {
   }, [toolId, router]);
 
   /* ================= OCR ================= */
-  const runOCR = async (base64: string) => {
-    const res = await Tesseract.recognize(base64, "eng", {
-      logger: (m) => {
-        if (m.status === "recognizing text") {
-          setProgress(Math.round(m.progress * 100));
-        }
-      },
-    });
+ const runOCR = async (base64: string) => {
+  const res = await Tesseract.recognize(base64, "eng", {
+    logger: (m) => {
+      if (m.status === "recognizing text") {
+        setStage("Recognizing Text...");
+        setProgress(Math.round(m.progress * 100));
+      }
+      if (m.status === "loading tesseract core") {
+        setStage("Loading OCR Engine...");
+      }
+    },
+  });
 
-    setText(res.data.text);
-    setStatus("done");
-  };
+  setStage("Finalizing...");
+  setText(res.data.text);
+  setProgress(100);
+  setStatus("done");
+};
+
 
   /* ================= COMPRESS ================= */
   const startCompressFlow = async (files: StoredFile[]) => {
