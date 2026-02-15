@@ -137,6 +137,15 @@ Unapproved pull requests may be closed to maintain code quality.
 
 ### 🔐 Privacy & Security
 
+## Privacy Model
+
+- No server-side APIs
+- No file uploads
+- No telemetry or tracking
+- All processing inside Web Workers
+- Memory cleared after processing
+- IndexedDB storage fully user-controlled
+
 - **Zero Server Uploads** – Nothing leaves your browser
 - **No Tracking** – No analytics, no cookies, no surveillance
 - **Local Processing** – All computation happens on your device
@@ -415,15 +424,6 @@ Here are some screenshots showing DocuHub in action — all processing happens l
 ---
 
 ## 🔒 Security & Privacy
-
-### Privacy Model
-
-- No server-side APIs
-- No file uploads
-- No telemetry or tracking
-- All processing inside Web Workers
-- Memory cleared after processing
-- IndexedDB storage fully user-controlled
 
 ### Our Promises
 
