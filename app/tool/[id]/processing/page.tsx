@@ -26,6 +26,9 @@ export default function ProcessingPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
+const [compressedSize, setCompressedSize] = useState<number | null>(null);
+
 
   /* ================= RUN TOOL ================= */
   useEffect(() => {
@@ -49,8 +52,12 @@ export default function ProcessingPage() {
         else if (toolId === "png-to-pdf")
           await imageToPdf(stored[0].data, "png");
 
-        else if (toolId === "pdf-compress")
-          await startCompressFlow(stored);
+       else if (toolId === "pdf-compress") {
+  const originalBytes = base64ToBytes(stored[0].data);
+  setOriginalSize(originalBytes.length);
+  await startCompressFlow(stored);
+}
+
 
         else setStatus("done");
       } catch (e) {
