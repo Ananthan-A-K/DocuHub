@@ -13,8 +13,7 @@ import { PDF_TOOLS } from "@/lib/pdfTools";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { clearStoredFiles, storeFile } from "@/lib/fileStore";
-
+import { clearStoredFiles, storeFiles } from "@/lib/fileStore";
 import {
   saveToolState,
   loadToolState,
@@ -37,12 +36,15 @@ export default function ToolUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
+  /* Watermark */
   const [watermarkText, setWatermarkText] = useState("");
   const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
 
+  /* Rotate PDF */
   const [pagesToRotate, setPagesToRotate] = useState("");
 
+  /* Page Numbers */
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
 
@@ -56,12 +58,14 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
+  /* Load saved state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
+  /* Save state */
   useEffect(() => {
     if (!toolId || !selectedFiles.length) return;
 
@@ -76,6 +80,7 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFiles]);
 
+  /* Warn before leaving */
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -87,6 +92,7 @@ export default function ToolUploadPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedWork]);
 
+  /* Supported types */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
@@ -108,6 +114,7 @@ export default function ToolUploadPage() {
     }
   };
 
+  /* Icon */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -120,6 +127,7 @@ export default function ToolUploadPage() {
     return <FileText className="w-6 h-6 text-gray-400" />;
   };
 
+  /* File select */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     clearStoredFiles();
 
@@ -150,29 +158,22 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
+  /* Remove file */
   const handleRemoveFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleReplaceFile = () => {
-    fileInputRef.current?.click();
-  };
+  /* Replace */
+  const handleReplaceFile = () => fileInputRef.current?.click();
 
+  /* Process */
   const handleProcessFile = async () => {
     if (!selectedFiles.length) return;
 
     setIsProcessing(true);
 
     try {
-      let ok = true;
-
-      for (const file of selectedFiles) {
-        const res = await storeFile(file);
-        if (!res) {
-          ok = false;
-          break;
-        }
-      }
+      const ok = await storeFiles(selectedFiles);
 
       if (!ok) {
         setFileError("Failed to process file.");
@@ -218,6 +219,7 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
+  /* Tools page */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -235,6 +237,7 @@ export default function ToolUploadPage() {
     );
   }
 
+  /* Upload page */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
@@ -282,6 +285,7 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
+        {/* File list */}
         {selectedFiles.length > 0 && (
           <div className="mt-6 space-y-3">
             {selectedFiles.map((file, index) => (
@@ -331,7 +335,7 @@ export default function ToolUploadPage() {
               Processing...
             </span>
           ) : (
-            "Process File"
+            "Process Files"
           )}
         </button>
 
