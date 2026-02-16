@@ -6,6 +6,7 @@ import {
   FileUp,
   Image as ImageIcon,
   RotateCw,
+  FileKey, // ✅ ADDED (for password remover icon)
 } from "lucide-react";
 
 export const PDF_TOOLS = Object.freeze([
@@ -136,5 +137,14 @@ export const PDF_TOOLS = Object.freeze([
     description: "Drag and reorder PDF pages",
     href: "/tool/pdf-page-reorder",
     icon: Scissors,
+  },
+
+  // ✅ NEW — PDF Password Remover Tool (ADDED NOW)
+  {
+    id: "pdf-password-remover",
+    title: "PDF Password Remover",
+    description: "Remove password from protected PDF files",
+    href: "/tool/pdf-password-remover",
+    icon: FileKey,
   },
 ]);
