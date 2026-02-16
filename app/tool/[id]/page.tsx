@@ -48,6 +48,8 @@ export default function ToolUploadPage() {
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
 
+  const [rotationAngleOption, setRotationAngleOption] = useState("90");
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [persistedFileMeta, setPersistedFileMeta] = useState<{
@@ -181,6 +183,7 @@ export default function ToolUploadPage() {
       if (toolId === "pdf-rotate") {
         localStorage.setItem("rotationAngle", rotationAngle.toString());
         localStorage.setItem("pagesToRotate", pagesToRotate);
+        localStorage.setItem("pdfRotateAngle", rotationAngleOption);
       }
 
       if (toolId === "pdf-watermark") {
