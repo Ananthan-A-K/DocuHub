@@ -6,6 +6,7 @@ import {
   Loader2,
   FileText,
   Image as ImageIcon,
+  CheckCircle
 } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
@@ -14,6 +15,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { clearStoredFiles, storeFiles } from "@/lib/fileStore";
+
+
 import {
   saveToolState,
   loadToolState,
@@ -54,7 +57,6 @@ export default function ToolUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
-  /* Watermark */
   const [watermarkText, setWatermarkText] = useState("");
   const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
@@ -65,7 +67,6 @@ export default function ToolUploadPage() {
     pages: "",
   });
 
-  /* Page Numbers */
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
 
@@ -77,14 +78,12 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
-  /* Load saved state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
-  /* Save state */
   useEffect(() => {
     if (!toolId || !selectedFiles.length) return;
 
@@ -99,7 +98,6 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFiles]);
 
-  /* Warn before leaving */
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -111,27 +109,31 @@ export default function ToolUploadPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedWork]);
 
-  /* Supported types */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
         return [".jpg", ".jpeg", ".png"];
+
       case "jpeg-to-pdf":
         return [".jpg", ".jpeg"];
+
       case "png-to-pdf":
         return [".png"];
+
+      case "pdf-merge":
+      case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
       case "pdf-watermark":
       case "pdf-page-numbers":
       case "pdf-rotate":
         return [".pdf"];
+
       default:
         return [];
     }
   };
 
-  /* Icon */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -144,7 +146,6 @@ export default function ToolUploadPage() {
     return <FileText className="w-6 h-6 text-gray-400" />;
   };
 
-  /* File select */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     clearStoredFiles();
 
@@ -175,22 +176,29 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* Remove file */
   const handleRemoveFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  /* Replace */
-  const handleReplaceFile = () => fileInputRef.current?.click();
+  const handleReplaceFile = () => {
+    fileInputRef.current?.click();
+  };
 
-  /* Process */
   const handleProcessFile = async () => {
     if (!selectedFiles.length) return;
 
     setIsProcessing(true);
 
     try {
-      const ok = await storeFiles(selectedFiles);
+      let ok = true;
+
+      for (const file of selectedFiles) {
+        const res = await storeFile(file);
+        if (!res) {
+          ok = false;
+          break;
+        }
+      }
 
       if (!ok) {
         setFileError("Failed to process file.");
@@ -209,10 +217,7 @@ export default function ToolUploadPage() {
 
       if (toolId === "pdf-page-numbers") {
         localStorage.setItem("pageNumberFormat", pageNumberFormat);
-        localStorage.setItem(
-          "pageNumberFontSize",
-          pageNumberFontSize.toString()
-        );
+        localStorage.setItem("pageNumberFontSize", pageNumberFontSize.toString());
       }
 
       clearToolState(toolId);
@@ -337,7 +342,6 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
-        {/* File list */}
         {selectedFiles.length > 0 && (
           <div className="mt-6 space-y-3">
             {selectedFiles.map((file, index) => (
@@ -347,11 +351,18 @@ export default function ToolUploadPage() {
               >
                 {getFileIcon(file)}
 
-                <div className="flex-1">
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                {/* ✅ CHECK ICON ADDED HERE */}
+                <div className="flex-1 flex items-start justify-between">
+                  <div>
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+
+                  {!fileError && (
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-1" />
+                  )}
                 </div>
 
                 <button
@@ -429,7 +440,7 @@ export default function ToolUploadPage() {
               Processing...
             </span>
           ) : (
-            "Process Files"
+            "Process File"
           )}
         </button>
 
@@ -439,4 +450,4 @@ export default function ToolUploadPage() {
       </main>
     </div>
   );
-}
+} 
