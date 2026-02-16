@@ -6,12 +6,14 @@ import { useParams, useRouter } from "next/navigation";
 import Tesseract from "tesseract.js";
 import { getStoredFiles, clearStoredFiles } from "@/lib/fileStore";
 import { PDFDocument, rgb, degrees } from "pdf-lib";
+import { protectPdfBytes } from "@/lib/pdfProtection";
 
 type StoredFile = {
   data: string;
   name: string;
   type: string;
   file?: File;
+  password?: string;
 };
 
 const SUPPORTED_PROCESSING_TOOLS = new Set([
@@ -175,10 +177,14 @@ export default function ProcessingPage() {
   const protectPDF = async (files: StoredFile[]) => {
     const urls: string[] = [];
 
-    for (const file of files) {
-      const bytes = await readPdfBytes(file);
-      const pdf = await PDFDocument.load(bytes);
-      urls.push(makeBlobUrl(await pdf.save()));
+    for (const f of files) {
+      if (!f.password?.trim()) {
+        throw new Error("Password is required to protect PDF.");
+      }
+
+      const bytes = await readRawBytes(f);
+      const encrypted = await protectPdfBytes(bytes, f.password);
+      urls.push(makeBlobUrl(new Uint8Array(encrypted)));
     }
 
     setDownloadUrls(urls);

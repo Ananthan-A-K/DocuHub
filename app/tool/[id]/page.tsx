@@ -70,6 +70,7 @@ export default function ToolUploadPage() {
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
   const [compressionLevel, setCompressionLevel] = useState<"low" | "medium" | "high">("medium");
+  const [protectPassword, setProtectPassword] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -187,11 +188,20 @@ export default function ToolUploadPage() {
 
   const handleProcessFile = async () => {
     if (!selectedFiles.length) return;
+    if (toolId === "pdf-protect" && !protectPassword.trim()) {
+      setFileError("Please enter a password.");
+      return;
+    }
 
     setIsProcessing(true);
 
     try {
-      const ok = await storeFiles(selectedFiles);
+      const ok = await storeFiles(
+        selectedFiles,
+        toolId === "pdf-protect"
+          ? { password: protectPassword }
+          : undefined
+      );
       if (!ok) {
         setFileError("Failed to process file.");
         return;
@@ -454,9 +464,28 @@ export default function ToolUploadPage() {
           </div>
         )}
 
+        {toolId === "pdf-protect" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-2">
+            <label className="block text-sm font-medium">
+              Enter Password
+            </label>
+            <input
+              type="password"
+              value={protectPassword}
+              onChange={e => setProtectPassword(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Password to protect PDF"
+            />
+          </div>
+        )}
+
         <button
           onClick={handleProcessFile}
-          disabled={!selectedFiles.length || isProcessing}
+          disabled={
+            !selectedFiles.length ||
+            isProcessing ||
+            (toolId === "pdf-protect" && !protectPassword.trim())
+          }
           className={`mt-8 w-full py-3 rounded-lg text-sm font-medium transition ${
             selectedFiles.length && !isProcessing
               ? "bg-black text-white hover:bg-gray-800"
