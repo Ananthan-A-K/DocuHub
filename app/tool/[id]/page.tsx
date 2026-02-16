@@ -69,6 +69,7 @@ export default function ToolUploadPage() {
 
   const [pageNumberFormat, setPageNumberFormat] = useState("numeric");
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
+  const [compressionLevel, setCompressionLevel] = useState<"low" | "medium" | "high">("medium");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -190,16 +191,7 @@ export default function ToolUploadPage() {
     setIsProcessing(true);
 
     try {
-      let ok = true;
-
-      for (const file of selectedFiles) {
-        const res = await storeFile(file);
-        if (!res) {
-          ok = false;
-          break;
-        }
-      }
-
+      const ok = await storeFiles(selectedFiles);
       if (!ok) {
         setFileError("Failed to process file.");
         return;
@@ -218,6 +210,10 @@ export default function ToolUploadPage() {
       if (toolId === "pdf-page-numbers") {
         localStorage.setItem("pageNumberFormat", pageNumberFormat);
         localStorage.setItem("pageNumberFontSize", pageNumberFontSize.toString());
+      }
+
+      if (toolId === "pdf-compress") {
+        localStorage.setItem("compressionLevel", compressionLevel);
       }
 
       clearToolState(toolId);
@@ -422,6 +418,39 @@ export default function ToolUploadPage() {
                 placeholder="all pages, or e.g. 1,3-5"
               />
             </div>
+          </div>
+        )}
+
+        {toolId === "pdf-compress" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-3">
+            <p className="text-sm font-medium">Compression Level</p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="compression-level"
+                checked={compressionLevel === "low"}
+                onChange={() => setCompressionLevel("low")}
+              />
+              Low (best quality, smaller reduction)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="compression-level"
+                checked={compressionLevel === "medium"}
+                onChange={() => setCompressionLevel("medium")}
+              />
+              Medium (balanced)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="compression-level"
+                checked={compressionLevel === "high"}
+                onChange={() => setCompressionLevel("high")}
+              />
+              High (smallest size, lowest visual quality)
+            </label>
           </div>
         )}
 
