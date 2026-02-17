@@ -16,7 +16,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { clearStoredFiles, storeFiles } from "@/lib/fileStore";
 
-
 import {
   saveToolState,
   loadToolState,
@@ -24,6 +23,7 @@ import {
 } from "@/lib/toolStateStorage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 const UPLOAD_ENABLED_TOOLS = new Set([
   "ocr",
   "jpeg-to-pdf",
@@ -34,7 +34,9 @@ const UPLOAD_ENABLED_TOOLS = new Set([
   "pdf-page-numbers",
   "pdf-rotate",
 ]);
+
 const CATEGORY_TOOLS = new Set(["pdf-tools"]);
+
 const MOVED_TO_DASHBOARD: Record<string, string> = {
   "pdf-merge": "/dashboard/pdf-merge",
   "document-to-pdf": "/dashboard/document-to-pdf",
@@ -61,7 +63,6 @@ export default function ToolUploadPage() {
   const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
 
-  /* Rotate PDF */
   const [rotateConfig, setRotateConfig] = useState({
     angle: 90,
     pages: "",
@@ -152,6 +153,13 @@ export default function ToolUploadPage() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
+    // ✅ MAX FILE LIMIT
+    const MAX_FILES = 10;
+    if (files.length > MAX_FILES) {
+      setFileError(`You can upload a maximum of ${MAX_FILES} files.`);
+      return;
+    }
+
     const allowed = getSupportedTypes();
     const validFiles: File[] = [];
 
@@ -190,15 +198,7 @@ export default function ToolUploadPage() {
     setIsProcessing(true);
 
     try {
-      let ok = true;
-
-      for (const file of selectedFiles) {
-        const res = await storeFile(file);
-        if (!res) {
-          ok = false;
-          break;
-        }
-      }
+      const ok = await storeFiles(selectedFiles);
 
       if (!ok) {
         setFileError("Failed to process file.");
@@ -239,7 +239,6 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* Tools page */
   if (CATEGORY_TOOLS.has(toolId)) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -259,42 +258,23 @@ export default function ToolUploadPage() {
 
   const dashboardFallback = MOVED_TO_DASHBOARD[toolId];
   if (!UPLOAD_ENABLED_TOOLS.has(toolId)) {
-    const heading = dashboardFallback
-      ? "This tool moved to Dashboard"
-      : "This tool is currently unavailable";
-    const details = dashboardFallback
-      ? "Use the dashboard route for this tool."
-      : "Choose an available tool to continue.";
-
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="max-w-md w-full text-center border rounded-xl p-6">
-          <h1 className="text-2xl font-semibold">{heading}</h1>
-          <p className="text-muted-foreground mt-2">
-            {details} (Tool ID: {toolId})
-          </p>
-          <div className="mt-6 flex flex-col gap-3">
-            {dashboardFallback && (
-              <button
-                onClick={() => router.push(dashboardFallback)}
-                className="w-full py-3 rounded-lg text-sm font-medium bg-black text-white hover:bg-gray-800"
-              >
-                Open Tool
-              </button>
-            )}
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="w-full py-3 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50"
-            >
-              Back to Dashboard
-            </button>
-          </div>
+          <h1 className="text-2xl font-semibold">
+            This tool is currently unavailable
+          </h1>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="mt-6 w-full py-3 rounded-lg border"
+          >
+            Back to Dashboard
+          </button>
         </div>
       </div>
     );
   }
 
-  /* Upload page */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
@@ -341,113 +321,23 @@ export default function ToolUploadPage() {
             onChange={handleFile}
           />
         </motion.div>
+<p className="text-sm text-gray-500 mt-2">
+  Maximum 10 files allowed
+</p>
 
-        {selectedFiles.length > 0 && (
-          <div className="mt-6 space-y-3">
-            {selectedFiles.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm"
-              >
-                {getFileIcon(file)}
-
-                {/* ✅ CHECK ICON ADDED HERE */}
-                <div className="flex-1 flex items-start justify-between">
-                  <div>
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-
-                  {!fileError && (
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-1" />
-                  )}
-                </div>
-
-                <button
-                  onClick={handleReplaceFile}
-                  className="text-sm text-blue-600 hover:underline mr-3"
-                >
-                  Replace
-                </button>
-
-                <button
-                  onClick={() => handleRemoveFile(index)}
-                  className="text-sm text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {toolId === "pdf-rotate" && (
-          <div className="mt-6 rounded-xl border bg-white p-4 space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Rotation Angle
-              </label>
-              <select
-                value={rotateConfig.angle}
-                onChange={e =>
-                  setRotateConfig(prev => ({
-                    ...prev,
-                    angle: Number(e.target.value),
-                  }))
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value={90}>90°</option>
-                <option value={180}>180°</option>
-                <option value={270}>270°</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Pages (optional)
-              </label>
-              <input
-                type="text"
-                value={rotateConfig.pages}
-                onChange={e =>
-                  setRotateConfig(prev => ({
-                    ...prev,
-                    pages: e.target.value,
-                  }))
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                placeholder="all pages, or e.g. 1,3-5"
-              />
-            </div>
-          </div>
+        {fileError && (
+          <p className="mt-3 text-sm text-red-600">{fileError}</p>
         )}
 
         <button
           onClick={handleProcessFile}
           disabled={!selectedFiles.length || isProcessing}
-          className={`mt-8 w-full py-3 rounded-lg text-sm font-medium transition ${
-            selectedFiles.length && !isProcessing
-              ? "bg-black text-white hover:bg-gray-800"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+          className="mt-8 w-full py-3 rounded-lg text-sm font-medium bg-black text-white"
         >
-          {isProcessing ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing...
-            </span>
-          ) : (
-            "Process File"
-          )}
+          {isProcessing ? "Processing..." : "Process File"}
         </button>
 
-        {fileError && (
-          <p className="mt-3 text-sm text-red-600">{fileError}</p>
-        )}
       </main>
     </div>
   );
-} 
+}
