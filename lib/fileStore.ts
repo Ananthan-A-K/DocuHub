@@ -2,6 +2,7 @@ let storedFiles: {
   data: string;
   name: string;
   type: string;
+  file?: File;
   password?: string;
 }[] = [];
 
@@ -25,6 +26,7 @@ export async function storeFiles(
             data: string;
             name: string;
             type: string;
+            file?: File;
             password?: string;
           }>((resolve, reject) => {
             const reader = new FileReader();
@@ -34,6 +36,7 @@ export async function storeFiles(
                 data: reader.result as string,
                 name: file.name,
                 type: file.type,
+                file,
                 password: options?.password,
               });
 
