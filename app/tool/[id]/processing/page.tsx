@@ -7,6 +7,7 @@ import Tesseract from "tesseract.js";
 import { getStoredFiles, clearStoredFiles } from "@/lib/fileStore";
 import { PDFDocument, rgb, degrees } from "pdf-lib";
 import { protectPdfBytes } from "@/lib/pdfProtection";
+import ToolFeedbackPrompt from "@/components/ToolFeedbackPrompt";
 
 type StoredFile = {
   data: string;
@@ -922,6 +923,8 @@ export default function ProcessingPage() {
             </button>
           </div>
         )}
+
+        <ToolFeedbackPrompt toolId={toolId} />
       </div>
     </div>
   );
