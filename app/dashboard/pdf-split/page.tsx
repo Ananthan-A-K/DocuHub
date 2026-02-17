@@ -9,7 +9,7 @@ export default function PdfSplitPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [pageRange, setPageRange] = useState("");
 
-  /* ✅ ADDED SUCCESS STATE */
+  /* ✅ SUCCESS STATE */
   const [successMsg, setSuccessMsg] = useState("");
 
   const formatFileSize = (bytes: number) => {
@@ -58,7 +58,12 @@ export default function PdfSplitPage() {
       if (pageRange.includes("-")) {
         const [start, end] = pageRange.split("-").map(Number);
 
-        if (isNaN(start) || isNaN(end) || start < 1 || end > pdf.getPageCount()) {
+        if (
+          isNaN(start) ||
+          isNaN(end) ||
+          start < 1 ||
+          end > pdf.getPageCount()
+        ) {
           setLoading(false);
           return alert("Invalid page range");
         }
@@ -69,7 +74,11 @@ export default function PdfSplitPage() {
       } else {
         const page = Number(pageRange);
 
-        if (isNaN(page) || page < 1 || page > pdf.getPageCount()) {
+        if (
+          isNaN(page) ||
+          page < 1 ||
+          page > pdf.getPageCount()
+        ) {
           setLoading(false);
           return alert("Invalid page number");
         }
@@ -95,7 +104,7 @@ export default function PdfSplitPage() {
 
       URL.revokeObjectURL(url);
 
-      /* ✅ ADDED SUCCESS MESSAGE TRIGGER */
+      /* ✅ SUCCESS MESSAGE */
       setSuccessMsg("✅ File downloaded successfully");
       setTimeout(() => setSuccessMsg(""), 3000);
 
@@ -141,7 +150,7 @@ export default function PdfSplitPage() {
         </p>
       </div>
 
-      {/* ✅ Empty State Message */}
+      {/* Empty State */}
       {files.length === 0 && (
         <div className="mt-6 text-center">
           <p className="text-gray-500 text-lg font-medium">
@@ -175,7 +184,7 @@ export default function PdfSplitPage() {
         </div>
       ))}
 
-      {/* PDF Preview */}
+      {/* Preview */}
       {files.length > 0 && (
         <div className="mt-6 border rounded p-4 h-[500px]">
           <iframe
@@ -207,7 +216,7 @@ export default function PdfSplitPage() {
         {loading ? "Splitting PDF..." : "Split PDF"}
       </button>
 
-      {/* ✅ SUCCESS MESSAGE UI */}
+      {/* Success Message */}
       {successMsg && (
         <p className="text-green-600 text-sm mt-4 text-center font-medium">
           {successMsg}
