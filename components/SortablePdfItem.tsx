@@ -54,12 +54,18 @@ export function SortablePdfItem({ id, file, index, onRemove, uploadedTime }: Sor
         <PdfThumbnail file={file} className="w-16 h-20 shadow-sm rounded" />
       </div>
 
+      {/* ✅ IMPORTANT: min-w-0 keeps truncate working inside flex */}
       <div className="flex-grow min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">
             {index + 1}
           </span>
-          <p className="font-medium text-gray-900 truncate" title={file.name}>
+
+          {/* ✅ FINAL TRUNCATE + TOOLTIP */}
+          <p
+            className="font-medium text-gray-900 truncate max-w-full"
+            title={file.name}
+          >
             {file.name}
           </p>
         </div>

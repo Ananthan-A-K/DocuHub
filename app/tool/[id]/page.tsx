@@ -118,11 +118,10 @@ export default function ToolUploadPage() {
   const [compressionLevel, setCompressionLevel] = useState<
     "low" | "medium" | "high"
   >("medium");
-<<<<<<< HEAD
-=======
+
   const [compressionTargetBytesInput, setCompressionTargetBytesInput] =
     useState("");
->>>>>>> upstream/main
+ 
   const [protectPassword, setProtectPassword] = useState("");
   const [passwordRemoverPassword, setPasswordRemoverPassword] = useState("");
   const [deletePagesInput, setDeletePagesInput] = useState("");
@@ -248,8 +247,7 @@ export default function ToolUploadPage() {
       return setFileError("Enter password.");
     if (toolId === "pdf-password-remover" && !passwordRemoverPassword.trim())
       return setFileError("Enter password.");
-<<<<<<< HEAD
-=======
+
     if (toolId === "pdf-compress") {
       localStorage.setItem("compressionLevel", compressionLevel);
       const parsedTarget = Number.parseInt(compressionTargetBytesInput.trim(), 10);
@@ -261,7 +259,7 @@ export default function ToolUploadPage() {
         localStorage.removeItem("targetBytes");
       }
     }
->>>>>>> upstream/main
+
 
     setIsProcessing(true);
 
@@ -412,9 +410,9 @@ export default function ToolUploadPage() {
 
         <p className="text-sm text-gray-500 mt-2">Maximum 10 files allowed</p>
 
-<<<<<<< HEAD
+
         {fileError && <p className="mt-3 text-sm text-red-600">{fileError}</p>}
-=======
+
         {toolId === "pdf-compress" && (
           <div className="mt-6 rounded-xl border border-gray-200 p-4 space-y-4">
             <div>
@@ -452,7 +450,7 @@ export default function ToolUploadPage() {
             </div>
           </div>
         )}
->>>>>>> upstream/main
+ upstream/main
 
         {fileError && <p className="mt-3 text-sm text-red-600">{fileError}</p>}
 
