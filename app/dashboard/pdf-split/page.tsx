@@ -101,7 +101,7 @@ export default function PdfSplitPage() {
 
       const newBytes = await newPdf.save();
 
-      const blob = new Blob([new Uint8Array(newBytes)], {
+      const blob = new Blob([new Uint8Array(newBytes) as any], {
         type: "application/pdf",
       });
 
@@ -132,11 +132,10 @@ export default function PdfSplitPage() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-xl p-10 text-center transition ${
-          isDragging
+        className={`border-2 border-dashed rounded-xl p-10 text-center transition ${isDragging
             ? "border-accent bg-accent/10"
             : "border-border bg-muted hover:border-accent"
-        }`}
+          }`}
       >
         <h1 className="text-2xl font-semibold mb-2">Split PDF File</h1>
         <p className="text-muted-foreground text-sm mb-4">
@@ -229,11 +228,10 @@ export default function PdfSplitPage() {
       <button
         onClick={handleSplit}
         disabled={loading || !files.length || !pageRange}
-        className={`w-full mt-6 py-3 rounded-lg font-medium transition ${
-          loading || !files.length || !pageRange
+        className={`w-full mt-6 py-3 rounded-lg font-medium transition ${loading || !files.length || !pageRange
             ? "bg-muted text-muted-foreground cursor-not-allowed"
             : "bg-primary hover:opacity-90 text-primary-foreground"
-        }`}
+          }`}
       >
         {loading ? "Splitting PDF..." : "Split PDF"}
       </button>

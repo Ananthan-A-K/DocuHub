@@ -185,7 +185,7 @@ export default function ProcessingPage() {
     const payload = new FormData();
     payload.append(
       "file",
-      new File([sourceBytes], file.name || "upload.pdf", {
+      new File([sourceBytes as any], file.name || "upload.pdf", {
         type: file.type || "application/pdf",
       }),
     );
@@ -412,7 +412,7 @@ export default function ProcessingPage() {
       await page.render({
         canvasContext: context,
         viewport,
-      }).promise;
+      } as any).promise;
 
       const pngBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
@@ -508,7 +508,7 @@ export default function ProcessingPage() {
       canvas.height = Math.max(1, Math.floor(viewport.height));
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvasContext: context, viewport }).promise;
+      await page.render({ canvasContext: context, viewport } as any).promise;
 
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
@@ -636,7 +636,7 @@ export default function ProcessingPage() {
       await page.render({
         canvasContext: context,
         viewport,
-      }).promise;
+      } as any).promise;
 
       const pngBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
@@ -734,7 +734,7 @@ export default function ProcessingPage() {
       disableStream: true,
       filename: fileName,
       password,
-    });
+    } as any);
     return loadingTask.promise;
   };
 
@@ -814,7 +814,7 @@ export default function ProcessingPage() {
   const makeBlobUrl = (bytes: Uint8Array, type: string) => {
     const normalized = new Uint8Array(bytes.byteLength);
     normalized.set(bytes);
-    return URL.createObjectURL(new Blob([normalized.buffer], { type }));
+    return URL.createObjectURL(new Blob([normalized.buffer as any], { type }));
   };
 
   const stripExtension = (name: string) => name.replace(/\.[^/.]+$/, "");

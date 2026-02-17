@@ -230,7 +230,7 @@ export default function PdfMergePage() {
       const mergedBytes = await mergedPdf.save();
       setUploadProgress(95);
 
-      const blob = new Blob([new Uint8Array(mergedBytes)], {
+      const blob = new Blob([new Uint8Array(mergedBytes) as any], {
         type: 'application/pdf',
       });
 

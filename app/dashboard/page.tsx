@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ArrowLeftRight, ScanText, LayoutGrid, Search } from "lucide-react";
+import { FileText, ArrowLeftRight, ScanText, LayoutGrid, Search, ArrowRight } from "lucide-react";
 import { ToolCard } from "@/components/ToolCard";
 import ToolCardSkeleton from "@/components/ToolCardSkeleton";
 import RecentFiles from "@/components/RecentFiles";
@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRecentFiles } from "@/lib/hooks/useRecentFiles";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -92,88 +93,99 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 container mx-auto px-6 py-12 md:px-12">
+    <div className="min-h-screen flex flex-col bg-background/50">
+      <main className="flex-1 container mx-auto px-6 py-12 md:px-12 max-w-7xl">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Resume Banner */}
+          {lastTool && !hideResume && (
+            <div className="mb-10 rounded-2xl border border-primary/20 p-6 flex items-center justify-between gap-4 bg-primary/5 shadow-sm backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-primary text-primary-foreground hidden sm:block">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-primary/80 uppercase tracking-wider">
+                    Resume your work
+                  </p>
+                  <Link
+                    href={`/tool/${lastTool}`}
+                    className="text-lg font-bold text-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  >
+                    {lastTool.replace("-", " ").toUpperCase()}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
 
-        {/* Resume Banner */}
-        {lastTool && !hideResume && (
-          <div className="mb-8 max-w-5xl rounded-xl border p-4 flex items-start justify-between gap-4 bg-card border-border shadow-sm">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Resume your last tool
-              </p>
-
-              <Link
-                href={`/tool/${lastTool}`}
-                className="text-base font-semibold text-foreground hover:underline"
+              <button
+                onClick={() => {
+                  if (lastTool) {
+                    localStorage.setItem("hideResumeFor", lastTool);
+                  }
+                  setHideResume(true);
+                }}
+                className="p-2 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
               >
-                → {lastTool.replace("-", " ").toUpperCase()}
-              </Link>
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Page Title + Search */}
+          <div className="mb-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+              <div>
+                <h1 className="text-4xl font-black tracking-tight mb-2 text-foreground">
+                  Workspace
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Select a tool to begin processing your documents.
+                </p>
+              </div>
+
+              {/* Search Bar */}
+              <div className="flex items-center gap-3 border border-border/60 rounded-2xl px-4 py-3 bg-card shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all w-full md:w-80">
+                <Search className="w-5 h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Find a tool..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-transparent outline-none text-sm w-full font-medium"
+                />
+              </div>
             </div>
 
-            <button
-              onClick={() => {
-                if (lastTool) {
-                  localStorage.setItem("hideResumeFor", lastTool);
-                }
-                setHideResume(true);
-              }}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ✕
-            </button>
+            {/* Most Used Tools */}
+            {mostUsedTools.length > 0 && search === "" && (
+              <div className="mb-12">
+                <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">
+                  Frequently Used
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {mostUsedTools.map(([tool, count]) => (
+                    <Link
+                      key={tool}
+                      href={`/tool/${tool}`}
+                      className="glass-card p-5 flex flex-col justify-between group"
+                    >
+                      <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                        {tool.replace("-", " ").toUpperCase()}
+                      </span>
+                      <span className="text-xs text-muted-foreground mt-2">
+                        {count} sessions
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Most Used Tools */}
-        {mostUsedTools.length > 0 && (
-          <div className="mb-10 max-w-5xl p-5 rounded-xl bg-card border border-border shadow-sm">
-            <h2 className="text-xl font-semibold text-foreground mb-4">
-              Most Used Tools
-            </h2>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {mostUsedTools.map(([tool, count]) => (
-                <Link
-                  key={tool}
-                  href={`/tool/${tool}`}
-                  className="rounded-lg border p-4 transition flex justify-between items-center bg-card border-border hover:bg-muted"
-                >
-                  <span className="font-medium text-foreground">
-                    {tool.replace("-", " ").toUpperCase()}
-                  </span>
-
-                  <span className="text-sm text-muted-foreground">
-                    {count} uses
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Page Title + Search */}
-        <div className="mb-12 p-5 rounded-xl bg-card border border-border shadow-sm">
-          <h1 className="text-3xl font-semibold tracking-tight mb-2 text-foreground">
-            Choose a tool
-          </h1>
-
-          <p className="text-muted-foreground text-lg mb-4">
-            Select what you want to do with your file
-          </p>
-
-          {/* Search Bar */}
-          <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-background border-border max-w-md">
-            <Search className="w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search tools..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full"
-            />
-          </div>
-        </div>
+        </motion.div>
 
         {/* Tools Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 max-w-5xl">
