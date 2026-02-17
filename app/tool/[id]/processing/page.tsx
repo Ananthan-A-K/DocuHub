@@ -16,12 +16,23 @@ type StoredFile = {
   password?: string;
 };
 
+type DownloadItem = {
+  url: string;
+  name: string;
+};
+
 const SUPPORTED_PROCESSING_TOOLS = new Set([
   "ocr",
   "pdf-protect",
   "jpeg-to-pdf",
   "png-to-pdf",
   "pdf-watermark",
+  "pdf-redact",
+  "metadata-viewer",
+  "pdf-extract-images",
+  "pdf-delete-pages",
+  "pdf-page-reorder",
+  "pdf-password-remover",
   "pdf-compress",
   "pdf-page-numbers",
   "pdf-rotate",
@@ -39,15 +50,15 @@ export default function ProcessingPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const [downloadUrls, setDownloadUrls] = useState<string[]>([]);
+  const [downloadItems, setDownloadItems] = useState<DownloadItem[]>([]);
   const [originalSize, setOriginalSize] = useState<number | null>(null);
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
 
   useEffect(() => {
     return () => {
-      downloadUrls.forEach((url) => URL.revokeObjectURL(url));
+      downloadItems.forEach((item) => URL.revokeObjectURL(item.url));
     };
-  }, [downloadUrls]);
+  }, [downloadItems]);
 
   useEffect(() => {
     const run = async () => {
@@ -75,6 +86,18 @@ export default function ProcessingPage() {
           await imageToPdf(stored, "png");
         } else if (toolId === "pdf-watermark") {
           await watermarkPDF(stored);
+        } else if (toolId === "pdf-redact") {
+          await redactPdf(stored[0]);
+        } else if (toolId === "metadata-viewer") {
+          await viewMetadata(stored[0]);
+        } else if (toolId === "pdf-extract-images") {
+          await extractPageImages(stored[0]);
+        } else if (toolId === "pdf-delete-pages") {
+          await deletePages(stored[0]);
+        } else if (toolId === "pdf-page-reorder") {
+          await reorderPages(stored[0]);
+        } else if (toolId === "pdf-password-remover") {
+          await removePassword(stored[0]);
         } else if (toolId === "pdf-compress") {
           const sourceBytes = await readPdfBytes(stored[0]);
           setOriginalSize(sourceBytes.length);
@@ -139,7 +162,12 @@ export default function ProcessingPage() {
     setStage("Finalizing...");
     setProgress(85);
     setCompressedSize(finalBytes.length);
-    setDownloadUrls([makeBlobUrl(finalBytes)]);
+    setDownloadItems([
+      {
+        url: makeBlobUrl(finalBytes, "application/pdf"),
+        name: "compressed.pdf",
+      },
+    ]);
     setProgress(100);
     setStatus("done");
   };
@@ -148,7 +176,7 @@ export default function ProcessingPage() {
     const textValue = localStorage.getItem("watermarkText") || "";
     const rotation = Number(localStorage.getItem("watermarkRotation") || 45);
     const opacity = Number(localStorage.getItem("watermarkOpacity") || 40) / 100;
-    const urls: string[] = [];
+    const items: DownloadItem[] = [];
 
     for (const file of files) {
       const bytes = await readPdfBytes(file);
@@ -167,15 +195,18 @@ export default function ProcessingPage() {
         });
       });
 
-      urls.push(makeBlobUrl(await pdf.save()));
+      items.push({
+        url: makeBlobUrl(await pdf.save(), "application/pdf"),
+        name: `${stripExtension(file.name)}-watermarked.pdf`,
+      });
     }
 
-    setDownloadUrls(urls);
+    setDownloadItems(items);
     setStatus("done");
   };
 
   const protectPDF = async (files: StoredFile[]) => {
-    const urls: string[] = [];
+    const items: DownloadItem[] = [];
 
     for (const f of files) {
       if (!f.password?.trim()) {
@@ -184,15 +215,18 @@ export default function ProcessingPage() {
 
       const bytes = await readRawBytes(f);
       const encrypted = await protectPdfBytes(bytes, f.password);
-      urls.push(makeBlobUrl(new Uint8Array(encrypted)));
+      items.push({
+        url: makeBlobUrl(new Uint8Array(encrypted), "application/pdf"),
+        name: `${stripExtension(f.name)}-protected.pdf`,
+      });
     }
 
-    setDownloadUrls(urls);
+    setDownloadItems(items);
     setStatus("done");
   };
 
   const imageToPdf = async (files: StoredFile[], type: "jpg" | "png") => {
-    const urls: string[] = [];
+    const items: DownloadItem[] = [];
 
     for (const file of files) {
       const bytes = await readRawBytes(file);
@@ -207,10 +241,13 @@ export default function ProcessingPage() {
         height: image.height,
       });
 
-      urls.push(makeBlobUrl(await pdf.save()));
+      items.push({
+        url: makeBlobUrl(await pdf.save(), "application/pdf"),
+        name: `${stripExtension(file.name)}.pdf`,
+      });
     }
 
-    setDownloadUrls(urls);
+    setDownloadItems(items);
     setStatus("done");
   };
 
@@ -240,7 +277,12 @@ export default function ProcessingPage() {
       });
     }
 
-    setDownloadUrls([makeBlobUrl(await pdfDoc.save())]);
+    setDownloadItems([
+      {
+        url: makeBlobUrl(await pdfDoc.save(), "application/pdf"),
+        name: `${stripExtension(file.name)}-page-numbers.pdf`,
+      },
+    ]);
     setStatus("done");
   };
 
@@ -259,7 +301,7 @@ export default function ProcessingPage() {
       }
     }
 
-    const urls: string[] = [];
+    const items: DownloadItem[] = [];
 
     for (const file of files) {
       const bytes = await readPdfBytes(file);
@@ -273,10 +315,300 @@ export default function ProcessingPage() {
         page.setRotation(degrees((current + angle) % 360));
       });
 
-      urls.push(makeBlobUrl(await pdf.save()));
+      items.push({
+        url: makeBlobUrl(await pdf.save(), "application/pdf"),
+        name: `${stripExtension(file.name)}-rotated.pdf`,
+      });
     }
 
-    setDownloadUrls(urls);
+    setDownloadItems(items);
+    setStatus("done");
+  };
+
+  const redactPdf = async (file: StoredFile) => {
+    setStage("Redacting PDF...");
+    setProgress(15);
+
+    const bytes = await readPdfBytes(file);
+    const inputPdf = await loadPdfJsDocument(bytes, file.name);
+    const outputPdf = await PDFDocument.create();
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("Canvas context is unavailable.");
+    }
+
+    for (let pageNumber = 1; pageNumber <= inputPdf.numPages; pageNumber++) {
+      setStage(`Redacting page ${pageNumber}/${inputPdf.numPages}...`);
+      setProgress(15 + Math.round((pageNumber / inputPdf.numPages) * 70));
+
+      const page = await inputPdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.width = Math.max(1, Math.floor(viewport.width));
+      canvas.height = Math.max(1, Math.floor(viewport.height));
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({
+        canvasContext: context,
+        viewport,
+      }).promise;
+
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("Image encoding failed"))),
+          "image/png"
+        );
+      });
+
+      const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+      const image = await outputPdf.embedPng(pngBytes);
+      const outPage = outputPdf.addPage([viewport.width, viewport.height]);
+      outPage.drawImage(image, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+    }
+
+    canvas.width = 0;
+    canvas.height = 0;
+    await inputPdf.destroy();
+
+    const result = await outputPdf.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+      objectsPerTick: 20,
+    });
+
+    setDownloadItems([
+      {
+        url: makeBlobUrl(result, "application/pdf"),
+        name: `${stripExtension(file.name)}-redacted.pdf`,
+      },
+    ]);
+    setProgress(100);
+    setStatus("done");
+  };
+
+  const viewMetadata = async (file: StoredFile) => {
+    setStage("Reading metadata...");
+    setProgress(45);
+
+    const bytes = await readPdfBytes(file);
+    const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+
+    const metadata = {
+      fileName: file.name,
+      fileType: file.type || "application/pdf",
+      fileSizeBytes: bytes.length,
+      pageCount: pdf.getPageCount(),
+      title: pdf.getTitle() || null,
+      author: pdf.getAuthor() || null,
+      subject: pdf.getSubject() || null,
+      keywords: pdf.getKeywords() || null,
+      creator: pdf.getCreator() || null,
+      producer: pdf.getProducer() || null,
+      creationDate: pdf.getCreationDate()?.toISOString() || null,
+      modificationDate: pdf.getModificationDate()?.toISOString() || null,
+    };
+
+    const json = JSON.stringify(metadata, null, 2);
+    const jsonBytes = new TextEncoder().encode(json);
+    setDownloadItems([
+      {
+        url: makeBlobUrl(jsonBytes, "application/json"),
+        name: `${stripExtension(file.name)}-metadata.json`,
+      },
+    ]);
+    setProgress(100);
+    setStatus("done");
+  };
+
+  const extractPageImages = async (file: StoredFile) => {
+    setStage("Extracting images...");
+    setProgress(10);
+
+    const bytes = await readPdfBytes(file);
+    const inputPdf = await loadPdfJsDocument(bytes, file.name);
+    const format = localStorage.getItem("pdfExtractImageFormat") === "jpg" ? "jpg" : "png";
+    const mime = format === "jpg" ? "image/jpeg" : "image/png";
+    const quality = format === "jpg" ? 0.9 : undefined;
+    const items: DownloadItem[] = [];
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("Canvas context is unavailable.");
+    }
+
+    for (let pageNumber = 1; pageNumber <= inputPdf.numPages; pageNumber++) {
+      setStage(`Rendering page ${pageNumber}/${inputPdf.numPages}...`);
+      setProgress(15 + Math.round((pageNumber / inputPdf.numPages) * 75));
+
+      const page = await inputPdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.width = Math.max(1, Math.floor(viewport.width));
+      canvas.height = Math.max(1, Math.floor(viewport.height));
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (value) => (value ? resolve(value) : reject(new Error("Image encoding failed"))),
+          mime,
+          quality
+        );
+      });
+
+      const bytesOut = new Uint8Array(await blob.arrayBuffer());
+      items.push({
+        url: makeBlobUrl(bytesOut, mime),
+        name: `${stripExtension(file.name)}-page-${pageNumber}.${format}`,
+      });
+    }
+
+    canvas.width = 0;
+    canvas.height = 0;
+    await inputPdf.destroy();
+
+    if (!items.length) {
+      throw new Error("No pages available to export.");
+    }
+
+    setDownloadItems(items);
+    setProgress(100);
+    setStatus("done");
+  };
+
+  const deletePages = async (file: StoredFile) => {
+    const bytes = await readPdfBytes(file);
+    const sourcePdf = await PDFDocument.load(bytes);
+    const totalPages = sourcePdf.getPageCount();
+    const selection = localStorage.getItem("pdfDeletePages") || "";
+    const deleteSet = parsePageSelection(selection, totalPages);
+
+    if (!deleteSet.size) {
+      throw new Error("No valid pages selected for deletion.");
+    }
+    if (deleteSet.size >= totalPages) {
+      throw new Error("Cannot delete all pages from the document.");
+    }
+
+    const keepIndices = Array.from({ length: totalPages }, (_, index) => index).filter(
+      (index) => !deleteSet.has(index + 1)
+    );
+    const outputPdf = await PDFDocument.create();
+    const pages = await outputPdf.copyPages(sourcePdf, keepIndices);
+    pages.forEach((page) => outputPdf.addPage(page));
+
+    setDownloadItems([
+      {
+        url: makeBlobUrl(await outputPdf.save(), "application/pdf"),
+        name: `${stripExtension(file.name)}-pages-deleted.pdf`,
+      },
+    ]);
+    setStatus("done");
+  };
+
+  const reorderPages = async (file: StoredFile) => {
+    const bytes = await readPdfBytes(file);
+    const sourcePdf = await PDFDocument.load(bytes);
+    const totalPages = sourcePdf.getPageCount();
+    const rawOrder = localStorage.getItem("pdfReorderPages") || "";
+    const order = rawOrder
+      .split(",")
+      .map((value) => parseInt(value.trim(), 10))
+      .filter((value) => !Number.isNaN(value));
+
+    const validSet = new Set(order);
+    if (order.length !== totalPages || validSet.size !== totalPages) {
+      throw new Error(`Provide each page exactly once (expected ${totalPages} pages).`);
+    }
+    if (Array.from(validSet).some((value) => value < 1 || value > totalPages)) {
+      throw new Error(`Page order must be between 1 and ${totalPages}.`);
+    }
+
+    const outputPdf = await PDFDocument.create();
+    const pages = await outputPdf.copyPages(
+      sourcePdf,
+      order.map((value) => value - 1)
+    );
+    pages.forEach((page) => outputPdf.addPage(page));
+
+    setDownloadItems([
+      {
+        url: makeBlobUrl(await outputPdf.save(), "application/pdf"),
+        name: `${stripExtension(file.name)}-reordered.pdf`,
+      },
+    ]);
+    setStatus("done");
+  };
+
+  const removePassword = async (file: StoredFile) => {
+    const password = file.password?.trim();
+    if (!password) {
+      throw new Error("Password is required to remove protection.");
+    }
+
+    setStage("Unlocking PDF...");
+    setProgress(10);
+
+    const bytes = await readRawBytes(file);
+    const inputPdf = await loadPdfJsDocument(bytes, file.name, password);
+    const outputPdf = await PDFDocument.create();
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("Canvas context is unavailable.");
+    }
+
+    for (let pageNumber = 1; pageNumber <= inputPdf.numPages; pageNumber++) {
+      setStage(`Rebuilding page ${pageNumber}/${inputPdf.numPages}...`);
+      setProgress(15 + Math.round((pageNumber / inputPdf.numPages) * 75));
+
+      const page = await inputPdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      canvas.width = Math.max(1, Math.floor(viewport.width));
+      canvas.height = Math.max(1, Math.floor(viewport.height));
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({
+        canvasContext: context,
+        viewport,
+      }).promise;
+
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("Image encoding failed"))),
+          "image/png"
+        );
+      });
+
+      const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+      const image = await outputPdf.embedPng(pngBytes);
+      const outPage = outputPdf.addPage([viewport.width, viewport.height]);
+      outPage.drawImage(image, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+    }
+
+    canvas.width = 0;
+    canvas.height = 0;
+    await inputPdf.destroy();
+
+    const unprotected = await outputPdf.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+      objectsPerTick: 20,
+    });
+
+    setDownloadItems([
+      {
+        url: makeBlobUrl(unprotected, "application/pdf"),
+        name: `${stripExtension(file.name)}-unlocked.pdf`,
+      },
+    ]);
+    setProgress(100);
     setStatus("done");
   };
 
@@ -298,20 +630,8 @@ export default function ProcessingPage() {
     bytes: Uint8Array,
     level: "medium" | "high"
   ) => {
-    const pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/build/pdf.worker.min.mjs",
-      import.meta.url
-    ).toString();
-
-    const loadingTask = pdfjsLib.getDocument({
-      data: bytes,
-      disableAutoFetch: true,
-      disableStream: true,
-      filename: file.name,
-    });
-
-    const inputPdf = await loadingTask.promise;
+    const loadingTask = await loadPdfJsDocument(bytes, file.name);
+    const inputPdf = loadingTask;
     const outputPdf = await PDFDocument.create();
     const renderScale = level === "high" ? 1.0 : 1.25;
     const jpegQuality = level === "high" ? 0.55 : 0.72;
@@ -361,7 +681,7 @@ export default function ProcessingPage() {
 
     canvas.width = 0;
     canvas.height = 0;
-    await loadingTask.destroy();
+    await inputPdf.destroy();
 
     return outputPdf.save({
       useObjectStreams: true,
@@ -419,6 +739,22 @@ export default function ProcessingPage() {
         ? normalized
         : normalized + "=".repeat(4 - (normalized.length % 4));
     return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+  };
+
+  const loadPdfJsDocument = async (bytes: Uint8Array, fileName: string, password?: string) => {
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url
+    ).toString();
+    const loadingTask = pdfjsLib.getDocument({
+      data: bytes,
+      disableAutoFetch: true,
+      disableStream: true,
+      filename: fileName,
+      password,
+    });
+    return loadingTask.promise;
   };
 
   const getCompressionLevelFromState = (): "low" | "medium" | "high" => {
@@ -487,16 +823,18 @@ export default function ProcessingPage() {
     return result;
   };
 
-  const makeBlobUrl = (bytes: Uint8Array) => {
+  const makeBlobUrl = (bytes: Uint8Array, type: string) => {
     const normalized = new Uint8Array(bytes.byteLength);
     normalized.set(bytes);
-    return URL.createObjectURL(new Blob([normalized.buffer], { type: "application/pdf" }));
+    return URL.createObjectURL(new Blob([normalized.buffer], { type }));
   };
 
-  const download = (url: string, index: number) => {
+  const stripExtension = (name: string) => name.replace(/\.[^/.]+$/, "");
+
+  const download = (item: DownloadItem, index: number) => {
     const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `result-${index + 1}.pdf`;
+    anchor.href = item.url;
+    anchor.download = item.name || `result-${index + 1}.pdf`;
     anchor.click();
   };
 
@@ -547,13 +885,13 @@ export default function ProcessingPage() {
           {toolId === "jpeg-to-pdf" ? "JPEG converted to PDF!" : toolId === "png-to-pdf" ? "PNG converted to PDF!" : "Completed successfully"}
         </h2>
 
-        {downloadUrls.map((url, index) => (
+        {downloadItems.map((item, index) => (
           <button
             key={index}
-            onClick={() => download(url, index)}
+            onClick={() => download(item, index)}
             className="block mx-auto mb-3 px-6 py-3 bg-black text-white rounded-lg"
           >
-            Download File {index + 1}
+            Download {item.name}
           </button>
         ))}
 
