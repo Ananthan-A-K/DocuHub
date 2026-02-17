@@ -31,6 +31,12 @@ const UPLOAD_ENABLED_TOOLS = new Set([
   "pdf-protect",
   "pdf-compress",
   "pdf-watermark",
+  "pdf-redact",
+  "metadata-viewer",
+  "pdf-extract-images",
+  "pdf-delete-pages",
+  "pdf-page-reorder",
+  "pdf-password-remover",
   "pdf-page-numbers",
   "pdf-rotate",
 ]);
@@ -39,8 +45,6 @@ const MOVED_TO_DASHBOARD: Record<string, string> = {
   "pdf-merge": "/dashboard/pdf-merge",
   "document-to-pdf": "/dashboard/document-to-pdf",
   "pdf-split": "/dashboard/pdf-split",
-  "pdf-redact": "/dashboard/pdf-redact",
-  "metadata-viewer": "/dashboard/metadata-viewer",
 };
 
 export default function ToolUploadPage() {
@@ -71,6 +75,11 @@ export default function ToolUploadPage() {
   const [pageNumberFontSize, setPageNumberFontSize] = useState(14);
   const [compressionLevel, setCompressionLevel] = useState<"low" | "medium" | "high">("medium");
   const [protectPassword, setProtectPassword] = useState("");
+  const [passwordRemoverPassword, setPasswordRemoverPassword] = useState("");
+  const [deletePagesInput, setDeletePagesInput] = useState("");
+  const [reorderPagesInput, setReorderPagesInput] = useState("");
+  const [extractImageFormat, setExtractImageFormat] = useState<"png" | "jpg">("png");
+  const [redactionStrategy, setRedactionStrategy] = useState<"flatten">("flatten");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -125,6 +134,12 @@ export default function ToolUploadPage() {
       case "pdf-merge":
       case "pdf-split":
       case "pdf-protect":
+      case "pdf-redact":
+      case "metadata-viewer":
+      case "pdf-extract-images":
+      case "pdf-delete-pages":
+      case "pdf-page-reorder":
+      case "pdf-password-remover":
       case "pdf-compress":
       case "pdf-watermark":
       case "pdf-page-numbers":
@@ -192,6 +207,22 @@ export default function ToolUploadPage() {
       setFileError("Please enter a password.");
       return;
     }
+    if (toolId === "pdf-password-remover" && !passwordRemoverPassword.trim()) {
+      setFileError("Please enter the current password.");
+      return;
+    }
+    if (toolId === "pdf-watermark" && !watermarkText.trim()) {
+      setFileError("Please enter watermark text.");
+      return;
+    }
+    if (toolId === "pdf-delete-pages" && !deletePagesInput.trim()) {
+      setFileError("Enter at least one page to delete.");
+      return;
+    }
+    if (toolId === "pdf-page-reorder" && !reorderPagesInput.trim()) {
+      setFileError("Enter a page order.");
+      return;
+    }
 
     setIsProcessing(true);
 
@@ -200,6 +231,8 @@ export default function ToolUploadPage() {
         selectedFiles,
         toolId === "pdf-protect"
           ? { password: protectPassword }
+          : toolId === "pdf-password-remover"
+          ? { password: passwordRemoverPassword }
           : undefined
       );
       if (!ok) {
@@ -215,6 +248,18 @@ export default function ToolUploadPage() {
         localStorage.setItem("watermarkRotation", rotationAngle.toString());
         localStorage.setItem("watermarkText", watermarkText);
         localStorage.setItem("watermarkOpacity", opacity.toString());
+      }
+      if (toolId === "pdf-redact") {
+        localStorage.setItem("pdfRedactionStrategy", redactionStrategy);
+      }
+      if (toolId === "pdf-extract-images") {
+        localStorage.setItem("pdfExtractImageFormat", extractImageFormat);
+      }
+      if (toolId === "pdf-delete-pages") {
+        localStorage.setItem("pdfDeletePages", deletePagesInput.trim());
+      }
+      if (toolId === "pdf-page-reorder") {
+        localStorage.setItem("pdfReorderPages", reorderPagesInput.trim());
       }
 
       if (toolId === "pdf-page-numbers") {
@@ -464,6 +509,121 @@ export default function ToolUploadPage() {
           </div>
         )}
 
+        {toolId === "pdf-watermark" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Watermark Text
+              </label>
+              <input
+                type="text"
+                value={watermarkText}
+                onChange={e => setWatermarkText(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                placeholder="CONFIDENTIAL"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Rotation ({rotationAngle}deg)
+              </label>
+              <input
+                type="range"
+                min={-90}
+                max={90}
+                value={rotationAngle}
+                onChange={e => setRotationAngle(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Opacity ({opacity}%)
+              </label>
+              <input
+                type="range"
+                min={10}
+                max={90}
+                value={opacity}
+                onChange={e => setOpacity(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
+
+        {toolId === "pdf-redact" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-3">
+            <p className="text-sm font-medium">Redaction Strategy</p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="redaction-strategy"
+                checked={redactionStrategy === "flatten"}
+                onChange={() => setRedactionStrategy("flatten")}
+              />
+              Flatten each page to image-only PDF (removes selectable text).
+            </label>
+          </div>
+        )}
+
+        {toolId === "pdf-extract-images" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-3">
+            <p className="text-sm font-medium">Output Image Format</p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="extract-image-format"
+                checked={extractImageFormat === "png"}
+                onChange={() => setExtractImageFormat("png")}
+              />
+              PNG (best quality)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="extract-image-format"
+                checked={extractImageFormat === "jpg"}
+                onChange={() => setExtractImageFormat("jpg")}
+              />
+              JPG (smaller files)
+            </label>
+          </div>
+        )}
+
+        {toolId === "pdf-delete-pages" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-2">
+            <label className="block text-sm font-medium">
+              Pages To Delete
+            </label>
+            <input
+              type="text"
+              value={deletePagesInput}
+              onChange={e => setDeletePagesInput(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Example: 2,4-6"
+            />
+          </div>
+        )}
+
+        {toolId === "pdf-page-reorder" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-2">
+            <label className="block text-sm font-medium">
+              New Page Order
+            </label>
+            <input
+              type="text"
+              value={reorderPagesInput}
+              onChange={e => setReorderPagesInput(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Example: 3,1,2,4"
+            />
+            <p className="text-xs text-gray-500">
+              Include every page once. 1-based indexing.
+            </p>
+          </div>
+        )}
+
         {toolId === "pdf-protect" && (
           <div className="mt-6 rounded-xl border bg-white p-4 space-y-2">
             <label className="block text-sm font-medium">
@@ -479,12 +639,28 @@ export default function ToolUploadPage() {
           </div>
         )}
 
+        {toolId === "pdf-password-remover" && (
+          <div className="mt-6 rounded-xl border bg-white p-4 space-y-2">
+            <label className="block text-sm font-medium">
+              Current PDF Password
+            </label>
+            <input
+              type="password"
+              value={passwordRemoverPassword}
+              onChange={e => setPasswordRemoverPassword(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Password used to open PDF"
+            />
+          </div>
+        )}
+
         <button
           onClick={handleProcessFile}
           disabled={
             !selectedFiles.length ||
             isProcessing ||
-            (toolId === "pdf-protect" && !protectPassword.trim())
+            (toolId === "pdf-protect" && !protectPassword.trim()) ||
+            (toolId === "pdf-password-remover" && !passwordRemoverPassword.trim())
           }
           className={`mt-8 w-full py-3 rounded-lg text-sm font-medium transition ${
             selectedFiles.length && !isProcessing
