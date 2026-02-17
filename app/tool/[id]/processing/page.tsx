@@ -21,6 +21,18 @@ type DownloadItem = {
   name: string;
 };
 
+<<<<<<< HEAD
+=======
+type CompressionApiResponse = {
+  status: "no_target" | "target_reached" | "target_unreachable";
+  targetBytes: number | null;
+  originalBytes: number;
+  compressedBytes: number;
+  outputBase64: string;
+  error?: string;
+};
+
+>>>>>>> upstream/main
 const SUPPORTED_PROCESSING_TOOLS = new Set([
   "ocr",
   "pdf-protect",
@@ -53,6 +65,10 @@ export default function ProcessingPage() {
   const [downloadItems, setDownloadItems] = useState<DownloadItem[]>([]);
   const [originalSize, setOriginalSize] = useState<number | null>(null);
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
+  const [compressionTargetBytes, setCompressionTargetBytes] = useState<number | null>(null);
+  const [compressionTargetStatus, setCompressionTargetStatus] = useState<
+    "no_target" | "target_reached" | "target_unreachable"
+  >("no_target");
 
   useEffect(() => {
     return () => {
@@ -60,6 +76,15 @@ export default function ProcessingPage() {
     };
   }, [downloadItems]);
 
+<<<<<<< HEAD
+  useEffect(() => {
+    return () => {
+      downloadItems.forEach((item) => URL.revokeObjectURL(item.url));
+    };
+  }, [downloadItems]);
+
+=======
+>>>>>>> upstream/main
   useEffect(() => {
     const run = async () => {
       const stored = getStoredFiles() as StoredFile[];
@@ -142,6 +167,7 @@ export default function ProcessingPage() {
     setStage("Preparing file...");
     setProgress(20);
 
+<<<<<<< HEAD
     const structuralSource = new Uint8Array(sourceBytes);
     structuralSource.set(sourceBytes);
 
@@ -162,6 +188,47 @@ export default function ProcessingPage() {
     setStage("Finalizing...");
     setProgress(85);
     setCompressedSize(finalBytes.length);
+=======
+    const level = getCompressionLevelFromState();
+    const targetBytes = getCompressionTargetBytesFromState();
+    setCompressionTargetBytes(targetBytes);
+    setStage(`Compressing PDF (${level})...`);
+    setProgress(45);
+
+    const payload = new FormData();
+    payload.append(
+      "file",
+      new File([sourceBytes], file.name || "upload.pdf", {
+        type: file.type || "application/pdf",
+      }),
+    );
+    payload.append("compressionLevel", level);
+    if (targetBytes != null) {
+      payload.append("targetBytes", String(targetBytes));
+    }
+
+    const response = await fetch("/api/compress", {
+      method: "POST",
+      body: payload,
+    });
+    const result = (await response.json()) as CompressionApiResponse;
+
+    if (!response.ok) {
+      throw new Error(result.error || "Compression API request failed.");
+    }
+
+    if (!result.outputBase64) {
+      throw new Error("Compression API returned no output.");
+    }
+
+    const finalBytes = decodeBase64Payload(result.outputBase64);
+    setCompressionTargetStatus(result.status || "no_target");
+    setCompressionTargetBytes(result.targetBytes);
+
+    setStage("Finalizing...");
+    setProgress(85);
+    setCompressedSize(result.compressedBytes || finalBytes.length);
+>>>>>>> upstream/main
     setDownloadItems([
       {
         url: makeBlobUrl(finalBytes, "application/pdf"),
@@ -612,6 +679,7 @@ export default function ProcessingPage() {
     setStatus("done");
   };
 
+<<<<<<< HEAD
   const structuralCompressPdf = async (bytes: Uint8Array) => {
     const sourcePdf = await PDFDocument.load(bytes);
     const outputPdf = await PDFDocument.create();
@@ -690,6 +758,8 @@ export default function ProcessingPage() {
     });
   };
 
+=======
+>>>>>>> upstream/main
   const readPdfBytes = async (file: StoredFile) => {
     const primary = await readRawBytes(file);
     try {
@@ -765,6 +835,17 @@ export default function ProcessingPage() {
     return "medium";
   };
 
+<<<<<<< HEAD
+=======
+  const getCompressionTargetBytesFromState = () => {
+    const raw = localStorage.getItem("compressionTargetBytes") || localStorage.getItem("targetBytes");
+    if (!raw) return null;
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return parsed;
+  };
+
+>>>>>>> upstream/main
   const parsePageSelection = (input: string, totalPages: number) => {
     const allPages = new Set<number>();
     for (let i = 1; i <= totalPages; i++) allPages.add(i);
@@ -902,6 +983,17 @@ export default function ProcessingPage() {
             <p className="font-semibold text-green-600">
               Reduced {(((originalSize - compressedSize) / originalSize) * 100).toFixed(1)}%
             </p>
+            {compressionTargetBytes != null && (
+              <p className="mt-1">Target: {(compressionTargetBytes / 1024 / 1024).toFixed(2)} MB</p>
+            )}
+            {compressionTargetStatus === "target_reached" && (
+              <p className="font-semibold text-green-600">Target size reached.</p>
+            )}
+            {compressionTargetStatus === "target_unreachable" && (
+              <p className="font-semibold text-amber-600">
+                Target size could not be reached. Downloading closest result.
+              </p>
+            )}
           </div>
         )}
 
