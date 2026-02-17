@@ -28,6 +28,7 @@ import {
   Download,
   Printer,
 } from 'lucide-react';
+import { toolToast } from '@/lib/toolToasts';
 
 interface FileWithId {
   id: string;
@@ -73,7 +74,10 @@ export default function PdfMergePage() {
   }, [mergedPdfUrl]);
 
   const replaceFile = (idToReplace: string, newFile: File) => {
-    if (newFile.type !== 'application/pdf') return;
+    if (newFile.type !== 'application/pdf') {
+      toolToast.warning('Unsupported format. Please upload PDF files only.');
+      return;
+    }
 
     setFilesWithIds((prev) =>
       prev.map((item) =>
@@ -106,7 +110,10 @@ export default function PdfMergePage() {
       (file) => file.type === 'application/pdf'
     );
 
-    if (droppedFiles.length === 0) return;
+    if (droppedFiles.length === 0) {
+      toolToast.warning('Unsupported format. Please upload PDF files only.');
+      return;
+    }
 
     const newFiles = droppedFiles.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -119,10 +126,12 @@ export default function PdfMergePage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-
-    const selectedFiles = Array.from(e.target.files).filter(
-      (file) => file.type === 'application/pdf'
-    );
+    const picked = Array.from(e.target.files);
+    const selectedFiles = picked.filter((file) => file.type === 'application/pdf');
+    const skipped = picked.length - selectedFiles.length;
+    if (skipped > 0) {
+      toolToast.warning('Some files were skipped. PDF format is supported.');
+    }
 
     const newFiles = selectedFiles.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -196,12 +205,13 @@ export default function PdfMergePage() {
 
   const handleMerge = async () => {
     if (filesWithIds.length < 2) {
-      alert('Please select at least 2 PDF files');
+      toolToast.warning('Please select at least 2 PDF files.');
       return;
     }
 
     setLoading(true);
     setUploadProgress(10);
+    toolToast.info('Merging PDFs...');
 
     try {
       const mergedPdf = await PDFDocument.create();
@@ -235,9 +245,10 @@ export default function PdfMergePage() {
       a.click();
 
       setUploadProgress(100);
+      toolToast.success('File is ready for download.');
     } catch (err) {
       console.error(err);
-      alert('Failed to merge PDFs');
+      toolToast.error('Processing failed. Could not merge PDFs.');
     } finally {
       setTimeout(() => {
         setLoading(false);

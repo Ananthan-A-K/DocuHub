@@ -15,7 +15,8 @@
   import { useRouter, useParams } from "next/navigation";                                                                                                       
   import { useEffect, useRef, useState } from "react";                                                                                                          
   import { motion } from "framer-motion";                                                                                                                       
-  import { clearStoredFiles, storeFiles } from "@/lib/fileStore";                                                                                               
+  import { clearStoredFiles, storeFiles } from "@/lib/fileStore";
+  import { toolToast } from "@/lib/toolToasts";
                                                                                                                                                                 
   import { saveToolState, clearToolState } from "@/lib/toolStateStorage";                                                                                       
                                                                                                                                                                 
@@ -244,17 +245,19 @@
       }                                                                                                                                                         
     };                                                                                                                                                          
                                                                                                                                                                 
-    const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {                                                                                            
-      clearStoredFiles();                                                                                                                                       
+    const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+      clearStoredFiles();
                                                                                                                                                                 
       const files = Array.from(e.target.files || []);                                                                                                           
       if (!files.length) return;                                                                                                                                
                                                                                                                                                                 
-      const MAX_FILES = 10;                                                                                                                                     
-      if (files.length > MAX_FILES) {                                                                                                                           
-        setFileError(`You can upload a maximum of ${MAX_FILES} files.`);                                                                                        
-        return;                                                                                                                                                 
-      }                                                                                                                                                         
+      const MAX_FILES = 10;
+      if (files.length > MAX_FILES) {
+        const message = `You can upload up to ${MAX_FILES} files.`;
+        setFileError(message);
+        toolToast.warning(message);
+        return;
+      }
                                                                                                                                                                 
       const allowed = getSupportedTypes();                                                                                                                      
       const validFiles: File[] = [];                                                                                                                            
@@ -262,39 +265,61 @@
       for (const file of files) {                                                                                                                               
         const ext = "." + file.name.split(".").pop()?.toLowerCase();                                                                                            
                                                                                                                                                                 
-        if (allowed.length && !allowed.includes(ext)) {                                                                                                         
-          setFileError(`Unsupported file type: ${file.name}`);                                                                                                  
-          return;                                                                                                                                               
-        }                                                                                                                                                       
-                                                                                                                                                                
-        if (file.size > MAX_FILE_SIZE) {                                                                                                                        
-          setFileError(`File too large: ${file.name}`);                                                                                                         
-          return;                                                                                                                                               
-        }                                                                                                                                                       
+        if (allowed.length && !allowed.includes(ext)) {
+          const message = `Unsupported format: ${file.name}. Supported: ${allowed.join(", ")}.`;
+          setFileError(message);
+          toolToast.warning(message);
+          return;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+          const message = `File is too large: ${file.name}. Max size is 10 MB.`;
+          setFileError(message);
+          toolToast.warning(message);
+          return;
+        }
                                                                                                                                                                 
         validFiles.push(file);                                                                                                                                  
       }                                                                                                                                                         
                                                                                                                                                                 
-      setFileError(null);                                                                                                                                       
-      setSelectedFiles(validFiles);                                                                                                                             
-      setHasUnsavedWork(true);                                                                                                                                  
-    };                                                                                                                                                          
-                                                                                                                                                                
-    const handleProcessFile = async () => {                                                                                                                     
-      if (!selectedFiles.length) return;                                                                                                                        
-      if (toolId === "pdf-protect" && !protectPassword.trim())                                                                                                  
-        return setFileError("Enter password.");                                                                                                                 
-      if (toolId === "pdf-password-remover" && !passwordRemoverPassword.trim())                                                                                 
-        return setFileError("Enter password.");                                                                                                                 
-      if (toolId === "pdf-delete-pages" && !deletePagesInput.trim()) {                                                                                          
-        return setFileError("Enter pages to delete.");                                                                                                          
-      }                                                                                                                                                         
-      if (toolId === "pdf-page-reorder" && !reorderPagesInput.trim()) {                                                                                         
-        return setFileError("Enter page order.");                                                                                                               
-      }                                                                                                                                                         
-      if (toolId === "pdf-watermark" && !watermarkText.trim()) {                                                                                                
-        return setFileError("Enter watermark text.");                                                                                                           
-      }                                                                                                                                                         
+      setFileError(null);
+      setSelectedFiles(validFiles);
+      setHasUnsavedWork(true);
+      toolToast.info(`${validFiles.length} file(s) ready to process.`);
+    };
+
+    const handleProcessFile = async () => {
+      if (!selectedFiles.length) return;
+      if (toolId === "pdf-protect" && !protectPassword.trim()) {
+        const message = "Enter a password to continue.";
+        setFileError(message);
+        toolToast.warning(message);
+        return;
+      }
+      if (toolId === "pdf-password-remover" && !passwordRemoverPassword.trim()) {
+        const message = "Enter a password to continue.";
+        setFileError(message);
+        toolToast.warning(message);
+        return;
+      }
+      if (toolId === "pdf-delete-pages" && !deletePagesInput.trim()) {
+        const message = "Enter pages to delete.";
+        setFileError(message);
+        toolToast.warning(message);
+        return;
+      }
+      if (toolId === "pdf-page-reorder" && !reorderPagesInput.trim()) {
+        const message = "Enter page order.";
+        setFileError(message);
+        toolToast.warning(message);
+        return;
+      }
+      if (toolId === "pdf-watermark" && !watermarkText.trim()) {
+        const message = "Enter watermark text.";
+        setFileError(message);
+        toolToast.warning(message);
+        return;
+      }
                                                                                                                                                                 
       if (toolId === "pdf-compress") {                                                                                                                          
         localStorage.setItem("compressionLevel", compressionLevel);                                                                                             
@@ -338,27 +363,35 @@
         localStorage.setItem("pdfRotateConfig", JSON.stringify(rotateConfig));                                                                                  
       }                                                                                                                                                         
                                                                                                                                                                 
-      setIsProcessing(true);                                                                                                                                    
-                                                                                                                                                                
-      try {                                                                                                                                                     
-        const ok = await storeFiles(                                                                                                                            
-          selectedFiles,                                                                                                                                        
-          toolId === "pdf-protect"                                                                                                                              
-            ? { password: protectPassword }                                                                                                                     
-            : toolId === "pdf-password-remover"                                                                                                                 
-              ? { password: passwordRemoverPassword }                                                                                                           
-              : undefined,                                                                                                                                      
-        );                                                                                                                                                      
-                                                                                                                                                                
-        if (!ok) return setFileError("Failed to process file.");                                                                                                
-                                                                                                                                                                
-        clearToolState(toolId);                                                                                                                                 
-        router.push(`/tool/${toolId}/processing`);                                                                                                              
-      } catch {                                                                                                                                                 
-        setFileError("Unexpected error occurred.");                                                                                                             
-      } finally {                                                                                                                                               
-        setIsProcessing(false);                                                                                                                                 
-      }                                                                                                                                                         
+      setIsProcessing(true);
+      toolToast.info("Processing started.");
+
+      try {
+        const result = await storeFiles(
+          selectedFiles,
+          toolId === "pdf-protect"
+            ? { password: protectPassword }
+            : toolId === "pdf-password-remover"
+              ? { password: passwordRemoverPassword }
+              : undefined,
+        );
+
+        if (!result.ok) {
+          const message = result.error || "Failed to process file.";
+          setFileError(message);
+          toolToast.error(message);
+          return;
+        }
+
+        clearToolState(toolId);
+        router.push(`/tool/${toolId}/processing`);
+      } catch {
+        const message = "Unexpected error occurred.";
+        setFileError(message);
+        toolToast.error(message);
+      } finally {
+        setIsProcessing(false);
+      }
     };                                                                                                                                                          
                                                                                                                                                                 
     const handleBackNavigation = () => {                                                                                                                        
