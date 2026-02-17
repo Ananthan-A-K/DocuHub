@@ -913,10 +913,15 @@ export default function ProcessingPage() {
         )}
 
         {toolId === "ocr" && (
-          <button onClick={copyText} className="mt-4 px-6 py-3 border rounded-lg">
-            <Copy className="inline w-4 h-4 mr-2" />
-            {copied ? "Copied!" : "Copy Text"}
-          </button>
+          <div className="mt-4 max-w-3xl">
+            <div className="rounded-lg border bg-gray-50 p-4 text-left text-sm whitespace-pre-wrap max-h-72 overflow-auto">
+              {text || "No text was extracted."}
+            </div>
+            <button onClick={copyText} className="mt-4 px-6 py-3 border rounded-lg">
+              <Copy className="inline w-4 h-4 mr-2" />
+              {copied ? "Copied!" : "Copy Text"}
+            </button>
+          </div>
         )}
 
         <ToolFeedbackPrompt toolId={toolId} />
