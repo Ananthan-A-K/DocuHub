@@ -6,7 +6,10 @@ import {
   Loader2,
   FileText,
   Image as ImageIcon,
-  CheckCircle
+  CheckCircle,
+  ArrowLeftRight,
+  ScanText,
+  Shield,
 } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
@@ -40,7 +43,53 @@ const UPLOAD_ENABLED_TOOLS = new Set([
   "pdf-page-numbers",
   "pdf-rotate",
 ]);
-const CATEGORY_TOOLS = new Set(["pdf-tools"]);
+const CATEGORY_TOOLS = new Set(["pdf-tools", "file-conversion", "data-tools"]);
+const FILE_CONVERSION_TOOLS = Object.freeze([
+  {
+    id: "document-to-pdf",
+    title: "Document to PDF",
+    description: "Convert TXT and DOCX documents to PDF",
+    href: "/dashboard/document-to-pdf",
+    icon: FileText,
+  },
+  {
+    id: "jpeg-to-pdf",
+    title: "JPEG to PDF",
+    description: "Convert JPEG images into PDF",
+    href: "/tool/jpeg-to-pdf",
+    icon: ImageIcon,
+  },
+  {
+    id: "png-to-pdf",
+    title: "PNG to PDF",
+    description: "Convert PNG images into PDF",
+    href: "/tool/png-to-pdf",
+    icon: ImageIcon,
+  },
+]);
+const DATA_TOOLS = Object.freeze([
+  {
+    id: "ocr",
+    title: "OCR",
+    description: "Extract text from images",
+    href: "/tool/ocr",
+    icon: ScanText,
+  },
+  {
+    id: "metadata-viewer",
+    title: "Metadata Viewer",
+    description: "Extract and download PDF metadata",
+    href: "/tool/metadata-viewer",
+    icon: FileText,
+  },
+  {
+    id: "pdf-redact",
+    title: "Redact PDF",
+    description: "Flatten PDF pages to remove selectable text",
+    href: "/tool/pdf-redact",
+    icon: Shield,
+  },
+]);
 const MOVED_TO_DASHBOARD: Record<string, string> = {
   "pdf-merge": "/dashboard/pdf-merge",
   "document-to-pdf": "/dashboard/document-to-pdf",
@@ -292,14 +341,39 @@ export default function ToolUploadPage() {
 
   /* Tools page */
   if (CATEGORY_TOOLS.has(toolId)) {
+    const categoryConfig =
+      toolId === "pdf-tools"
+        ? {
+            title: "PDF Tools",
+            subtitle: "Choose a PDF tool",
+            tools: PDF_TOOLS,
+            icon: FileText,
+          }
+        : toolId === "file-conversion"
+        ? {
+            title: "File Conversion",
+            subtitle: "Convert files across supported formats",
+            tools: FILE_CONVERSION_TOOLS,
+            icon: ArrowLeftRight,
+          }
+        : {
+            title: "Data Tools",
+            subtitle: "Extract and process document data",
+            tools: DATA_TOOLS,
+            icon: ScanText,
+          };
+
     return (
       <div className="min-h-screen flex flex-col">
         <main className="container mx-auto px-6 py-12 md:px-12">
-          <h1 className="text-3xl font-semibold mb-2">PDF Tools</h1>
-          <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
+          <div className="flex items-center gap-3 mb-2">
+            <categoryConfig.icon className="w-7 h-7 text-primary" />
+            <h1 className="text-3xl font-semibold">{categoryConfig.title}</h1>
+          </div>
+          <p className="text-muted-foreground mb-12">{categoryConfig.subtitle}</p>
 
           <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
-            {PDF_TOOLS.map(tool => (
+            {categoryConfig.tools.map(tool => (
               <ToolCard key={tool.id} {...tool} />
             ))}
           </div>
