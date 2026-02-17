@@ -133,6 +133,18 @@ export default function PdfSplitPage() {
         </p>
       </div>
 
+      {/* ✅ Empty State Message */}
+      {files.length === 0 && (
+        <div className="mt-6 text-center">
+          <p className="text-gray-500 text-lg font-medium">
+            No files selected yet
+          </p>
+          <p className="text-gray-400 text-sm mt-1">
+            Upload files to get started
+          </p>
+        </div>
+      )}
+
       {/* File Info */}
       {files.map((file, index) => (
         <div
