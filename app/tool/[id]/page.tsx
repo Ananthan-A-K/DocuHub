@@ -10,17 +10,16 @@ import {
   Shield,
   LayoutGrid,
 } from "lucide-react";
-
 import { ToolCard } from "@/components/ToolCard";
 import { PDF_TOOLS } from "@/lib/pdfTools";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { clearStoredFiles, storeFiles } from "@/lib/fileStore";
 import { toolToast } from "@/lib/toolToasts";
 import { getFileCategory, formatFileSize } from "@/lib/utils";
-
 import { saveToolState, clearToolState } from "@/lib/toolStateStorage";
+import { buildThreatWarning, scanUploadedFiles } from "@/lib/security/virusScan";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -111,6 +110,8 @@ export default function ToolUploadPage() {
   const [previewText, setPreviewText] = useState("");
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [scanState, setScanState] = useState<"idle" | "scanning" | "clean" | "threat">("idle");
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
@@ -291,6 +292,40 @@ export default function ToolUploadPage() {
     }
   };
 
+  const runSecurityScan = async (filesToScan: File[]) => {
+    if (!filesToScan.length) {
+      setScanState("idle");
+      setScanMessage(null);
+      return false;
+    }
+
+    setScanState("scanning");
+    setScanMessage("Scanning files...");
+
+    const { cleanFiles, threats } = await scanUploadedFiles(filesToScan);
+    if (!cleanFiles.length) {
+      const warning = buildThreatWarning(threats) || "Security scan failed.";
+      setSelectedFiles([]);
+      setFileError(warning);
+      setScanState("threat");
+      setScanMessage(warning);
+      return false;
+    }
+
+    setSelectedFiles(cleanFiles);
+    if (threats.length) {
+      setFileError(buildThreatWarning(threats));
+      setScanState("clean");
+      setScanMessage(`Scan complete. ${threats.length} unsafe file(s) were blocked.`);
+    } else {
+      setFileError(null);
+      setScanState("clean");
+      setScanMessage("Scan complete. No threats detected.");
+    }
+
+    return true;
+  };
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     clearStoredFiles();
 
@@ -330,36 +365,50 @@ export default function ToolUploadPage() {
 
     setFileError(null);
     setSelectedFiles(validFiles);
+    setScanState("idle");
+    setScanMessage('Click "Scan Files" before processing.');
     setHasUnsavedWork(true);
     toolToast.info(`${validFiles.length} file(s) ready to process.`);
   };
 
   const handleProcessFile = async () => {
     if (!selectedFiles.length) return;
+
+    if (scanState !== "clean") {
+      const message = 'Please click "Scan Files" and wait for a clean result.';
+      setFileError(message);
+      toolToast.warning(message);
+      return;
+    }
+
     if (toolId === "pdf-protect" && !protectPassword.trim()) {
       const message = "Enter a password to continue.";
       setFileError(message);
       toolToast.warning(message);
       return;
     }
+
     if (toolId === "pdf-password-remover" && !passwordRemoverPassword.trim()) {
       const message = "Enter a password to continue.";
       setFileError(message);
       toolToast.warning(message);
       return;
     }
+
     if (toolId === "pdf-delete-pages" && !deletePagesInput.trim()) {
       const message = "Enter pages to delete.";
       setFileError(message);
       toolToast.warning(message);
       return;
     }
+
     if (toolId === "pdf-page-reorder" && !reorderPagesInput.trim()) {
       const message = "Enter page order.";
       setFileError(message);
       toolToast.warning(message);
       return;
     }
+
     if (toolId === "pdf-watermark" && !watermarkText.trim()) {
       const message = "Enter watermark text.";
       setFileError(message);
@@ -445,6 +494,8 @@ export default function ToolUploadPage() {
     setSelectedFiles([]);
     setFileError(null);
     setHasUnsavedWork(false);
+    setScanState("idle");
+    setScanMessage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -461,6 +512,7 @@ export default function ToolUploadPage() {
   const canProcess =
     selectedFiles.length > 0 &&
     !isProcessing &&
+    scanState === "clean" &&
     !(toolId === "pdf-protect" && !protectPassword.trim()) &&
     !(toolId === "pdf-delete-pages" && !deletePagesInput.trim()) &&
     !(toolId === "pdf-page-reorder" && !reorderPagesInput.trim()) &&
@@ -952,6 +1004,19 @@ export default function ToolUploadPage() {
 
               {fileError && <p className="text-sm text-red-600">{fileError}</p>}
 
+              {scanMessage && (
+                <p
+                  className={`text-sm ${scanState === "clean"
+                      ? "text-green-700"
+                      : scanState === "threat"
+                        ? "text-red-600"
+                        : "text-gray-600"
+                    }`}
+                >
+                  {scanMessage}
+                </p>
+              )}
+
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
@@ -960,6 +1025,19 @@ export default function ToolUploadPage() {
                 >
                   Replace File
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => runSecurityScan(selectedFiles)}
+                  disabled={!selectedFiles.length || isProcessing || scanState === "scanning"}
+                  className={`w-full sm:w-auto py-3 px-4 rounded-lg text-sm font-medium transition ${selectedFiles.length && !isProcessing && scanState !== "scanning"
+                      ? "border border-black text-black hover:bg-gray-100"
+                      : "border border-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
+                >
+                  {scanState === "scanning" ? "Scanning..." : "Scan Files"}
+                </button>
+
                 <button
                   type="button"
                   onClick={handleProcessFile}
